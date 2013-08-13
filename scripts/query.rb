@@ -1,8 +1,9 @@
+# loading config hash from file
+require 'yaml'
+CONFIG = YAML.load_file "../config.yml"
+
 # Use omf_common communicator directly
 require 'omf_common'
-
-# loading config hash from file
-CONFIG = YAML.load_file "../config.yml"
 
 # As seen previously, this init will set up various run time options for you.
 #
@@ -17,31 +18,28 @@ CONFIG = YAML.load_file "../config.yml"
 #
 # OmfCommon.eventloop returns Eventmachine runtime instance since it is default.
 #
-OmfCommon.init(:development, communication: { url: CONFIG[:xmpp_url] }) do
+OmfCommon.init(CONFIG[:env], communication: { url: CONFIG[:xmpp_url] }) do
   # Event :on_connected will be triggered when connected to XMPP server
   #
   OmfCommon.comm.on_connected do |comm|
     info "Engine test script >> Connected to XMPP"
 
-    # Subscribe to a XMPP topic represents :garage, the name was set in the controller code if you wonder.
-    # Once triggered, it will yield a Topic object.
-    #
-    comm.subscribe('garage') do |garage|
-      unless garage.error?
-        # Request two properties from garage, :uid and :type
+    comm.subscribe('wisebed') do |wisebed|
+      unless wisebed.error?
+        # Request three properties from garage, :node_type, :position and :sensors
         #
-        # This is asynchronous, the reply_msg will only get processed when garage received the request
+        # This is asynchronous, the reply_msg will only get processed when wiserp received the request
         # and we actually received the inform message it issued.
         #
-        # Once we got the reply, simply iterate two properties and print them
+        # Once we got the reply, simply iterate the properties and print them
         #
-        garage.request([:uid, :type]) do |reply_msg|
+        wisebed.request([:node_type, :position, :sensors]) do |reply_msg|
           reply_msg.each_property do |k, v|
             info "#{k} >> #{v}"
           end
         end
       else
-        error garage.inspect
+        error wisebed.inspect
       end
     end
 
