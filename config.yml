@@ -1,0 +1,3 @@
+---
+:xmpp_url:  xmpp://localhost
+:env:       :development
