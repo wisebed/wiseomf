@@ -5,7 +5,7 @@ OmfCommon.init(CONFIG[:env], communication: { url: CONFIG[:xmpp_url] }) do
   OmfCommon.comm.on_connected do |comm|
     info "ResourceProxyManager >> Connected to XMPP server"
     rpm = []
-    rpm << OmfRc::ResourceFactory.create(:wiserp, uid: 'wisebed')
+    rpm << OmfRc::ResourceFactory.create(:rptm, uid: 'wisebed')
 
 
     comm.on_interrupted {

@@ -1,6 +1,3 @@
-# Need omf_rc gem to be required, will load all dependencies
-require 'omf_rc'
-
 # By using default namespace OmfRc::ResourceProxy, the module defined could be loaded automatically.
 #
 module OmfRc::ResourceProxy::WiseRP

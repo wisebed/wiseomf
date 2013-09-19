@@ -59,4 +59,5 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  omf_common
   omf_rc
