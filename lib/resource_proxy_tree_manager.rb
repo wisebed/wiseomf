@@ -1,6 +1,9 @@
+require 'singleton'
 class ResourceProxyTreeManager
 
-  @@tree
+  # TODO: think about:
+  #   - attributes
+  #   -
 
   def initialize
 

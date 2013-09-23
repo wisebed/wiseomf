@@ -17,6 +17,9 @@ module OmfRc::ResourceProxy::WiseRP
   property :node_type, :default => "isense39 (default)"
   property :position, :default => [0,0,0]
   property :sensors, :default => [:pir,:acc,:temperature,:light]
+
+  # TODO: think about properties:
+  #   - node urn?
 end
 
 
