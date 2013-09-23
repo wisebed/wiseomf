@@ -9,9 +9,10 @@ module OmfRc::ResourceProxy::WisebedReservationProxy
 
   # ...
   # TODO: think about useful properties:
-  #   - a list of subnodes might be useful.
+  #   - a list of sub resources is available as "children"
   #   - knowledge about available resource types  (e.g. list of reserved node types from the TR DeviceDB)
   #   - reservation id from the  REST API
+  #   - or secretReservationKeyBase64
 end
 
 

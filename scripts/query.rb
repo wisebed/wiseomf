@@ -10,7 +10,7 @@ require 'omf_common'
 # First line simply indicates:
 # * Use :development as default environment,
 #   this will use Eventmachine by default, set logging level to :debug
-# * Use XMPP as default communication layer and XMPP server to connect to is localhost
+# * Use XMPP as default communication layer and XMPP server to connect to defined in the config.yml (:xmpp_url)
 # * By default username:password will be auto generated
 #
 # OmfCommon.comm returns a communicator instance,

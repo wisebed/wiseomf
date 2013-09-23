@@ -13,22 +13,28 @@ class ReservationWatcher
 
   @terminationFlag = false
 
-  # initializes the single instance of this singleton and starts the run loop in it's own thread
-  def initialize
-    @thread = Thread.new {
-      puts 'Starting ReservationWatcher run loop'
-      while !@terminationFlag do
-        self.poll_reservations
-        sleep(POLL_INTERVAL)
-      end
-      puts 'Terminating ReservationWatcher run loop'
-    }
-
+  # starting the poll thread
+  def start
+    if !@pollThread
+      @pollThread = Thread.new {
+        puts 'Starting ReservationWatcher run loop'
+        while !@terminationFlag do
+          self.poll_reservations
+          sleep(POLL_INTERVAL)
+        end
+        puts 'Terminating ReservationWatcher run loop'
+      }
+    end
   end
 
   # This method safely terminates the reservation watcher after the current iteration of the run loop was completed.
   def terminate
     @terminationFlag = true
+  end
+
+  def kill
+    puts 'ReservationWatcher >> Killing the poll thread'
+    @pollThread.kill
   end
 
   def poll_reservations

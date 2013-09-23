@@ -8,4 +8,5 @@ CONFIG = YAML.load_file './config.yml'
 require 'omf_rc'
 require "#{File.dirname(__FILE__)}/lib/wise_r_p.rb"
 require "#{File.dirname(__FILE__)}/lib/wise_reservation_p.rb"
+require "#{File.dirname(__FILE__)}/lib/reservation_watcher.rb"
 require "#{File.dirname(__FILE__)}/lib/resource_proxy_manager.rb"

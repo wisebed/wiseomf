@@ -6,7 +6,7 @@ class ResourceProxyTreeManager
   #   -
 
   def initialize
-
+      # TODO: initialization of this singleton
   end
 
   def self.foo
