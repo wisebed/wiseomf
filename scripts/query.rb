@@ -21,6 +21,7 @@ require 'omf_common'
 OmfCommon.init(CONFIG[:env], communication: { url: CONFIG[:xmpp_url] }) do
   # Event :on_connected will be triggered when connected to XMPP server
   #
+  info "Here"
   OmfCommon.comm.on_connected do |comm|
     info "Engine test script >> Connected to XMPP"
 
