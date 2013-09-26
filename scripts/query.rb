@@ -1,4 +1,5 @@
 # loading config hash from file
+require 'java'
 require 'yaml'
 CONFIG = YAML.load_file "../config.yml"
 

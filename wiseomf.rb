@@ -6,7 +6,32 @@ CONFIG = YAML.load_file './config.yml'
 # Need omf_rc gem to be required, this will load all dependencies
 
 require 'omf_rc'
-require "#{File.dirname(__FILE__)}/lib/wise_r_p.rb"
-require "#{File.dirname(__FILE__)}/lib/wise_reservation_p.rb"
-require "#{File.dirname(__FILE__)}/lib/reservation_watcher.rb"
-require "#{File.dirname(__FILE__)}/lib/resource_proxy_manager.rb"
+require 'protocol_buffers'
+
+# Including protobuf message definitions
+require_relative "protobuf/external-plugin-messages.pb.rb"
+require_relative "protobuf/internal-messages.pb.rb"
+require_relative "protobuf/iwsn-messages.pb.rb"
+include De::Uniluebeck::Itm::Tr::Iwsn::Messages
+
+
+# Including application logic
+require_relative 'lib/tr_connector'
+require_relative 'lib/resource_proxy_manager'
+
+
+runtimeConnector = TRConnector.instance
+runtimeConnector.start
+
+ResourceProxyManager.instance
+
+
+switch = true
+
+Signal.trap('SIGINT') do
+  switch = false
+end
+
+while switch do
+  sleep 1
+end
