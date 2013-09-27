@@ -25,11 +25,14 @@ runtimeConnector.start
 
 ResourceProxyManager.instance
 
+info "WiseOMF started!"
+
 
 switch = true
 
 Signal.trap('SIGINT') do
   switch = false
+  TRConnector.instance.abort
 end
 
 while switch do

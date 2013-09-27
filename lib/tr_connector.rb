@@ -12,71 +12,45 @@ class TRConnector
   include De::Uniluebeck::Itm::Tr::Iwsn::Messages
   @thread
   @socket
+  @abort = false
+
+
+  def initialize
+
+  end
 
   def start
     @thread = Thread.new {
-      loop {
+      while !@abort
         begin
           info "All Sockets:  #{TCPSocket.gethostbyname(CONFIG[:trhost])}"
           @socket = TCPSocket.new(CONFIG[:trhost], CONFIG[:trport])
           info "Connected to #{CONFIG[:trhost]} on #{CONFIG[:trport]}."
-            break
+          break
         rescue
           warn "Can't connect to testbed runtime. Sleeping for 10 seconds"
           sleep 10
         end
-      }
+      end
 
-      loop {
-          info " >> LOOP Begin"
-          # FIXME: Solution for the length problem?
-          epmLine = ''
-          loop {
-            epmLine << @socket.read(1)
-            print epmLine
-            #epm = ExternalPluginMessage.parse(epmLine)
-            #if epm
-            #  info "EPM detected"
-            #  break
-            #end
-          }
-          epm = ExternalPluginMessage.parse(@socket)
-          info "Parsed #{epm}"
-
-          #info "After parse"
-          #info "EPM: #{epm}"
-          #info "Got #{epmLine}"
-          #epm = ExternalPluginMessage.parse(epmLine)
-          #puts "Valid: #{epm.nil?}"
-
-      #  re = ReservationEvent.new
-      #info "Test 3"
-      #  re.type = ReservationEvent::Type::STARTED
-      #  puts "2"
-      #  re.key = "1234"
-      #  re.username = "flkdsjklfsd"
-      #  re.nodeUrns = %w{aasd asdaslkj asdalks askldaskl}
-      #  re.interval_start = "12345"
-      #  re.interval_end = "1234556"
-      #
-      #  im = InternalMessage.new
-      #  im.type = InternalMessage::Type::RESERVATION_EVENT
-      #  im.reservationEvent = re
-      #
-      #
-      #  epm = ExternalPluginMessage.new
-      #  epm.internal_message = im
-      #  info epm
-
-        case epm.type
-          when ExternalPluginMessage::Type::INTERNAL_MESSAGE
-            self.handleInternalMessage(epm)
-          when ExternalPluginMessage::Type::IWSN_MESSAGE
-            self.handleIwsnMessage(epm)
+      while !@abort
+        begin
+          lengthField = @socket.read(4)
+          length = lengthField.unpack('N').first
+          data = @socket.read(length)
+          epm = ExternalPluginMessage.parse(data)
+          #info "parse success"
+          case epm.type
+            when ExternalPluginMessage::Type::INTERNAL_MESSAGE
+              self.handleInternalMessage(epm)
+            when ExternalPluginMessage::Type::IWSN_MESSAGE
+              self.handleIwsnMessage(epm)
+          end
+        rescue Exception => e
+          error e
         end
-        sleep 60
-        # TODO convert protobuf messages and pass them to the event listeners
-      }
+      end
+      info ">> LOOP End"
 
       socket.close
 
@@ -86,26 +60,51 @@ class TRConnector
   end
 
   def handleInternalMessage(epm)
-      info "Internal Message: #{epm.internal_message}"
+    #info "Internal Message: #{epm.internal_message.to_s}"
 
-      case epm.internal_message.type
-        when InternalMessage::Type::RESERVATION_EVENT
-          re = epm.internal_message.reservationEvent
-          case re.type
-            when ReservationEvent::Type::STARTED
-              EventBus.publish(Events::RESERVATION_STARTED, event: re)
-            when ReservationEvent::Type::ENDED
-              EventBus.publish(Events::RESERVATION_ENDED, event: re)
-          end
+    case epm.internal_message.type
+      when InternalMessage::Type::RESERVATION_EVENT
+        re = epm.internal_message.reservationEvent
+        case re.type
+          when ReservationEvent::Type::STARTED
+            EventBus.publish(Events::RESERVATION_STARTED, event: re)
+          when ReservationEvent::Type::ENDED
+            EventBus.publish(Events::RESERVATION_ENDED, event: re)
+        end
 
       # no other cases atm
-      end
+    end
 
   end
 
   def handleIwsnMessage(epm)
-    info "Iwsn Message: #{epm.iwsn_message}"
-    # TODO handle the Iwsn Message as needed.
+    #info "Iwsn Message: #{epm.iwsn_message.to_s}"
+    message = epm.iwsn_message
+
+    case message.type
+      when Message::Type::EVENT
+        EventBus.publish(Events::IWSN_EVENT, event: message.event)
+      when Message::Type::EVENT_ACK
+        EventBus.publish(Events::IWSN_EVENT_ACK, event: message.eventAck)
+      when Message::Type::RESPONSE
+        EventBus.publish(Events::IWSN_RESPONSE, event: message.response)
+      when Message::Type::REQUEST
+        EventBus.publish(Events::IWSN_REQUEST, event: message.request)
+      when Message::Type::PROGRESS
+        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress)
+      when Message::Type::GET_CHANNELPIPELINES_RESPONSE
+        EventBus.publish(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, event: message.getChannelPipelinesResponse)
+
+    end
   end
 
+
+  def abort
+    if !@abort
+      @abort = true
+      info 'Aborting TRConnector'
+      @thread.kill
+      @socket.close unless @socket.nil?
+    end
+  end
 end

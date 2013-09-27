@@ -15,6 +15,7 @@ module De
 
             class ReservationEvent < ::ProtocolBuffers::Message
               # forward declarations
+              class SecretReservationKey < ::ProtocolBuffers::Message; end
 
               # enums
               module Type
@@ -28,12 +29,20 @@ module De
 
               set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationEvent"
 
+              # nested messages
+              class SecretReservationKey < ::ProtocolBuffers::Message
+                set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationEvent.SecretReservationKey"
+
+                required :string, :nodeUrnPrefix, 1
+                required :string, :username, 2
+                required :string, :key, 3
+              end
+
               required ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationEvent::Type, :type, 1
-              required :string, :key, 2
-              required :string, :username, 3
-              repeated :string, :nodeUrns, 4
-              required :string, :interval_start, 5
-              required :string, :interval_end, 6
+              repeated ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationEvent::SecretReservationKey, :secretReservationKeys, 2
+              repeated :string, :nodeUrns, 3
+              required :string, :interval_start, 4
+              required :string, :interval_end, 5
             end
 
             class InternalMessage < ::ProtocolBuffers::Message
