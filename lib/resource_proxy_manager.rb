@@ -8,62 +8,41 @@ class ResourceProxyManager
   include Singleton
   include De::Uniluebeck::Itm::Tr::Iwsn::Messages
 
+  @resourceProxies
 
-  @resourceProxies = {}
-
-    #OmfCommon.init(CONFIG[:env], communication: {url: CONFIG[:xmpp_url]}) do
-    #  OmfCommon.comm.on_connected do |comm|
-    #    info "ResourceProxyManager >> Connected to XMPP server"
-    #    # Test end???
-    #    comm.on_interrupted {
-    #      puts "ResourceProxyManager >> Interrupt!"
-    #      @resourceProxies.each { |k, r| r.disconnect } unless @resourceProxies.nil?
-    #    }
-    #  end
-    #end
 
   def initialize
-      EventBus.subscribe(Events::RESERVATION_STARTED, self, :on_reservation_started)
-      EventBus.subscribe(Events::RESERVATION_ENDED, self, :on_reservation_ended)
-      debug 'ResourceProxyManager started!'
+    @resourceProxies = {}
+    EventBus.subscribe(Events::RESERVATION_STARTED, self, :on_reservation_started)
+    EventBus.subscribe(Events::RESERVATION_ENDED, self, :on_reservation_ended)
+    debug 'ResourceProxyManager started!'
   end
 
   def on_reservation_started(payload)
-    info "Reservation started: #{payload[:event]}"
+    info "on_reservation_started"
     reservation = payload[:event]
-    key = Base64.encode64(JSON.generate(reservation.secretReservationKeys))
-
-    # TODO provide options to the create method
-    proxy = OmfRc::ResourceFactory.create(:wisebed_reservation, uid: key)
-    @resourceProxies[key] = proxy
+    debug JSON.generate(reservation.secretReservationKeys)
+    if reservation.secretReservationKeys.count > 0
+      key = Base64.encode64(JSON.generate(reservation.secretReservationKeys))
+      opts = {uid: key, start_time: reservation.interval_start, end_time: reservation.interval_end, nodeUrns: reservation.nodeUrns, secretReservationKeys: reservation.secretReservationKeys}
+      proxy = OmfRc::ResourceFactory.create(:wisebed_reservation,opts)
+      @resourceProxies[key] = proxy
+    else
+      error 'There a no reservation keys in the list. Can\'t create new reservation proxy.'
+    end
   end
 
   def on_reservation_ended(payload)
     reservation = payload[:event]
-    proxy = @resourceProxies.delete(reservation.key)
+    key = Base64.encode64(JSON.generate(reservation.secretReservationKeys))
+    proxy = @resourceProxies.delete(key)
     proxy.disconnect unless proxy.nil?
   end
+
+  def handle_interrupt
+    @resourceProxies.each { |k, v|
+      v.disconnect
+    }
+  end
+
 end
-
-
-## This init method will set up your run time environment,
-## communication, eventloop, logging etc. We will explain that later.
-## Need to be called only once ??
-#OmfCommon.init(CONFIG[:env], communication: { url: CONFIG[:xmpp_url] }) do
-#  OmfCommon.comm.on_connected do |comm|
-#
-#    # TODO: I think this is just a quick test?
-#    info "ResourceProxyManager >> Connected to XMPP server"
-#    rpm = []
-#    rpm << OmfRc::ResourceFactory.create(:wisebed_reservation, uid: 'wisebed')
-#    # Test end???
-#    comm.on_interrupted {
-#      puts "ResourceProxyManager >> Interrupt!"
-#      ReservationWatcher.instance.terminate
-#      rpm.each {|r| r.disconnect}
-#    }
-#  end
-#
-#  # Starting the reservation watcher as part of WiseResourceManager
-#  ReservationWatcher.instance.start
-#end

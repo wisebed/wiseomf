@@ -27,14 +27,13 @@ ResourceProxyManager.instance
 
 info "WiseOMF started!"
 
-
-switch = true
-
-Signal.trap('SIGINT') do
-  switch = false
-  TRConnector.instance.abort
-end
-
-while switch do
-  sleep 1
-end
+OmfRc::ResourceFactory.load_additional_resource_proxies('./lib')
+OmfCommon.init(CONFIG[:env], communication: {url: CONFIG[:xmpp_url]}) {
+  OmfCommon.comm.on_connected {|comm|
+    info "WiseOMF >> Connected to XMPP server"
+    comm.on_interrupted {
+      puts "WiseOMF >> Interrupt!"
+      ResourceProxyManager.instance.handle_interrupt
+    }
+  }
+}

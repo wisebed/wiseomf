@@ -83,21 +83,34 @@ class TRConnector
 
     case message.type
       when Message::Type::EVENT
-        EventBus.publish(Events::IWSN_EVENT, event: message.event)
+        # TODO: handle subevents
+        handleIwsnEvent(message.event)
       when Message::Type::EVENT_ACK
         EventBus.publish(Events::IWSN_EVENT_ACK, event: message.eventAck)
       when Message::Type::RESPONSE
-        EventBus.publish(Events::IWSN_RESPONSE, event: message.response)
+        EventBus.publish(Events::IWSN_RESPONSE, event: message.response, nodeUrn: message.response.nodeUrn)
       when Message::Type::REQUEST
         EventBus.publish(Events::IWSN_REQUEST, event: message.request)
       when Message::Type::PROGRESS
-        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress)
+        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress, nodeUrn: message.progress.nodeUrn)
       when Message::Type::GET_CHANNELPIPELINES_RESPONSE
         EventBus.publish(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, event: message.getChannelPipelinesResponse)
 
     end
   end
 
+  def handleIwsnEvent(event)
+    case event.type
+      when Event::Type::UPSTREAM_MESSAGE
+        EventBus.publish(Events::IWSN_UPSTREAM_MESSAGE, event: event.upstreamMessageEvent, event_id: event.eventId)
+      when Event::Type::DEVICES_DETACHED
+        EventBus.publish(Events::IWSN_DEVICES_DETACHED, event: event.devicesDetachedEvent, event_id: event.eventId)
+      when Event::Type::DEVICES_ATTACHED
+        EventBus.publish(Events::IWSN_DEVICES_ATTACHED, event: event.devicesAttachedEvent, event_id: event.eventId)
+      when Event::Type::NOTIFICATION
+        EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, event_id: event.eventId)
+    end
+  end
 
   def abort
     if !@abort
