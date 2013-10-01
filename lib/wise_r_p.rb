@@ -16,7 +16,7 @@ module OmfRc::ResourceProxy::WiseRP
   # DSL method register_proxy will register this module definition,
   # where :wiserp become the :type of the proxy.
   #
-  register_proxy :wisebed_node, :create_by => :wisebed_reservation
+  register_proxy :wisebed_old_node, :create_by => :wisebed_reservation
 
 
   # DSL method property will define proxy's internal properties,
@@ -28,6 +28,7 @@ module OmfRc::ResourceProxy::WiseRP
   property :sensors, :default => [:pir,:acc,:temperature,:light]
 
   hook :after_initial_configured do |res|
+    EventBus.subscribe(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, self, :on_channel_pipelines_response)
     EventBus.subscribe(Events::IWSN_RESPONSE, self, :on_node_response)
     EventBus.subscribe(Events::IWSN_PROGRESS, self, :on_node_progress)
     EventBus.subscribe(Events::IWSN_UPSTREAM_MESSAGE, self, :on_upstream_message)

@@ -1,4 +1,5 @@
 require_relative '../resources/event_type'
+require_relative '../utils/uid_helper'
 require 'singleton'
 require 'omf_rc'
 require 'base64'
@@ -21,27 +22,27 @@ class ResourceProxyManager
   def on_reservation_started(payload)
     info "on_reservation_started"
     reservation = payload[:event]
-    debug JSON.generate(reservation.secretReservationKeys)
     if reservation.secretReservationKeys.count > 0
-      key = Base64.encode64(JSON.generate(reservation.secretReservationKeys))
-      opts = {uid: key, start_time: reservation.interval_start, end_time: reservation.interval_end, nodeUrns: reservation.nodeUrns, secretReservationKeys: reservation.secretReservationKeys}
+      key = Utils::UIDHelper.reservation_uid(reservation)
+      opts = {uid: key, start_time: reservation.interval_start, end_time: reservation.interval_end, nodeUrns: reservation.nodeUrns, reservationEvent: reservation}
       proxy = OmfRc::ResourceFactory.create(:wisebed_reservation,opts)
+      proxy
       @resourceProxies[key] = proxy
     else
-      error 'There a no reservation keys in the list. Can\'t create new reservation proxy.'
+      error 'There are no reservation keys in the list. Can\'t create new reservation proxy.'
     end
   end
 
   def on_reservation_ended(payload)
     reservation = payload[:event]
-    key = Base64.encode64(JSON.generate(reservation.secretReservationKeys))
+    key = Utils::UIDHelper.reservation_uid(reservation)
     proxy = @resourceProxies.delete(key)
-    proxy.disconnect unless proxy.nil?
+    proxy.release_self unless proxy.nil?
   end
 
   def handle_interrupt
     @resourceProxies.each { |k, v|
-      v.disconnect
+      v.release_self
     }
   end
 

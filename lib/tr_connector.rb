@@ -1,5 +1,6 @@
 require 'socket'
 require 'event_bus'
+require 'set'
 require_relative '../protobuf/internal-messages.pb'
 require_relative '../protobuf/external-plugin-messages.pb'
 require_relative '../protobuf/iwsn-messages.pb'
@@ -16,7 +17,11 @@ class TRConnector
 
 
   def initialize
-
+    EventBus.subscribe(Events::DOWN_FLASH_IMAGE, self, :on_flash_image)
+    EventBus.subscribe(Events::DOWN_MESSAGE, self, :on_message)
+    EventBus.subscribe(Events::DOWN_RESET, self, :on_nodes_reset)
+    EventBus.subscribe(Events::DOWN_ARE_NODES_CONNECTED, self, :on_nodes_connected_request)
+    EventBus.subscribe(Events::DOWN_ARE_NODES_ALIVE, self, :on_nodes_alive_request)
   end
 
   def start
@@ -59,6 +64,32 @@ class TRConnector
 
   end
 
+  # Event Bus Events (Downstream)
+
+  def on_flash_image(payload)
+    # TODO pass to testbed
+  end
+
+  def on_message(payload)
+    # TODO pass to testbed
+  end
+
+  def on_nodes_reset(payload)
+    # TODO pass to testbed
+  end
+
+  def on_nodes_connected_request(payload)
+    # TODO pass to testbed
+  end
+
+  def on_nodes_alive_request(payload)
+    # TODO pass to testbed
+  end
+
+
+
+  # Testbed Events (Upstream)
+
   def handleInternalMessage(epm)
     #info "Internal Message: #{epm.internal_message.to_s}"
 
@@ -83,18 +114,13 @@ class TRConnector
 
     case message.type
       when Message::Type::EVENT
-        # TODO: handle subevents
         handleIwsnEvent(message.event)
-      when Message::Type::EVENT_ACK
-        EventBus.publish(Events::IWSN_EVENT_ACK, event: message.eventAck)
       when Message::Type::RESPONSE
-        EventBus.publish(Events::IWSN_RESPONSE, event: message.response, nodeUrn: message.response.nodeUrn)
-      when Message::Type::REQUEST
-        EventBus.publish(Events::IWSN_REQUEST, event: message.request)
+        EventBus.publish(Events::IWSN_RESPONSE, event: message.response, requestId: message.response.requestId, nodeUrns: Set.new(message.response.nodeUrn))
       when Message::Type::PROGRESS
-        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress, nodeUrn: message.progress.nodeUrn)
+        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress, requestId: message.progress.requestId, nodeUrns: Set.new(message.progress.nodeUrn))
       when Message::Type::GET_CHANNELPIPELINES_RESPONSE
-        EventBus.publish(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, event: message.getChannelPipelinesResponse)
+        EventBus.publish(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, event: message.getChannelPipelinesResponse, requestId: message.getChannelPipelinesResponse.requestId)
 
     end
   end
@@ -102,13 +128,17 @@ class TRConnector
   def handleIwsnEvent(event)
     case event.type
       when Event::Type::UPSTREAM_MESSAGE
-        EventBus.publish(Events::IWSN_UPSTREAM_MESSAGE, event: event.upstreamMessageEvent, event_id: event.eventId)
+        EventBus.publish(Events::IWSN_UPSTREAM_MESSAGE, event: event.upstreamMessageEvent, eventId: event.eventId, nodeUrns: Set.new(event.upstreamMessageEvent.sourceNodeUrn))
       when Event::Type::DEVICES_DETACHED
-        EventBus.publish(Events::IWSN_DEVICES_DETACHED, event: event.devicesDetachedEvent, event_id: event.eventId)
+        EventBus.publish(Events::IWSN_DEVICES_DETACHED, event: event.devicesDetachedEvent, eventId: event.eventId, nodeUrns: Set.new(event.devicesDetachedEvent.nodeUrns))
       when Event::Type::DEVICES_ATTACHED
-        EventBus.publish(Events::IWSN_DEVICES_ATTACHED, event: event.devicesAttachedEvent, event_id: event.eventId)
+        EventBus.publish(Events::IWSN_DEVICES_ATTACHED, event: event.devicesAttachedEvent, eventId: event.eventId, nodeUrns: Set.new(event.devicesAttachedEvent.nodeUrns))
       when Event::Type::NOTIFICATION
-        EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, event_id: event.eventId)
+        unless event.notificationEvent.nodeUrn.nil?
+          EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, eventId: event.eventId, nodeUrns: Set.new(event.notificationEvent.nodeUrn))
+        else
+          EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, eventId: event.eventId)
+        end
     end
   end
 
