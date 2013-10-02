@@ -19,7 +19,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   #
   register_proxy :wisebed_node, :create_by => :wisebed_reservation
 
-  # Configure and Request Methods (Downstream)
+  # Configure and Request Methods (Upstream Events)
   def configure_image(value)
     id = self.requestId
     fir = FlashImagesRequest.new
@@ -92,15 +92,24 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     @nodeUrns
   end
 
-  # Upstream Methods (Event Handling)
+  # Handle Testbed Responses (Downstream Events)
   def on_channel_pipelines_response(payload)
-    return unless handle? payload
-    raise 'ChannelPipelinesResponse not handled yet!'
-    # TODO handle response
+    return unless handle_response? payload
+    id, req, responses, event, nodes = self.extract(payload)
+    event.pipelines.each {|pipe|
+      responses[pipe.nodeUrn] = [] if responses[pipe.nodeUrn].nil?
+      pipe.handlerConfigurations.each{|config|
+        responses[pipe.nodeUrn] << config.to_hash
+      }
+    }
+    if self.collection_complete?(id)
+      info "Request #{id} is completed. Informing EC."
+      self.inform('STATUS.CHANNEL_PIPELINES_RESPONSE'.to_sym, self.build_inform(id, responses), uid)
+    end
   end
 
   def on_node_response(payload)
-    return unless handle? payload
+    return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
     if nodes.count > 1
       error 'SingleNodeResponse has more than one node'
@@ -117,49 +126,55 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   end
 
   def on_node_progress(payload)
-    return unless handle? payload
+    return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
     if nodes.count > 1
       error 'SingleNodeProgress has more than one node'
       return
     end
-    self.inform('STATUS.PROGRESS'.to_sym,{requestId: id, nodeUrns: nodes, progress: event.progressInPercent}, uid)
+    self.inform('STATUS.PROGRESS'.to_sym, {requestId: id, nodeUrns: nodes, progress: event.progressInPercent}, uid)
   end
 
+
+  # Handle Testbed Events (Downstream Events)
+
   def on_upstream_message(payload)
-    # This message only is handled by an one node group
-    return unless handle? payload
-    nodeUrns = payload[:nodeUrns]
-    event = payload[:event]
-    self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: nodeUrns, timestamp: event.timestamp, message: event.messageBytes}, uid)
+    return unless handle_event? payload
+    id, req, responses, event, nodes = self.extract(payload)
+    intersection = @nodeUrns & nodes
+    self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes}, uid)
   end
 
   def on_devices_attached(payload)
-    return unless handle? payload
-    # TODO: handle devices attached
-    # Maybe an appropriate groups isn't existing yet
+    return unless handle_event? payload
+    id, req, responses, event, nodes = self.extract(payload)
+    intersection = @nodeUrns & nodes
+    self.inform('STATUS.NODES_ATTACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'}, uid)
   end
 
   def on_devices_detached(payload)
-    return unless handle? payload
-    # TODO: warn ec (only per node or in groups)
-    # Maybe an appropriate groups isn't existing yet
+    return unless handle_event? payload
+    id, req, responses, event, nodes = self.extract(payload)
+    intersection = @nodeUrns & nodes
+    self.inform('WARN.NODES_DETACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'}, uid)
   end
 
   def on_notification(payload)
-    # This message only is handled by an one node group
-    return unless handle? payload
-    nodeUrns = payload[:nodeUrns]
-    event = payload[:event]
-    self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: nodeUrns, timestamp: event.timestamp, message: event.message}, uid)
+    return unless handle_event? payload
+    id, req, responses, event, nodes = self.extract(payload)
+    intersection = @nodeUrns & nodes
+    self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.message}, uid)
   end
 
   # Hooks
   hook :before_ready do |ngp|
     self.nodeUrns = ngp.opts[:nodeUrns].to_set
+    # Testbed Responses
     EventBus.subscribe(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, self, :on_channel_pipelines_response)
     EventBus.subscribe(Events::IWSN_RESPONSE, self, :on_node_response)
     EventBus.subscribe(Events::IWSN_PROGRESS, self, :on_node_progress)
+
+    # Testbed Events
     EventBus.subscribe(Events::IWSN_UPSTREAM_MESSAGE, self, :on_upstream_message)
     EventBus.subscribe(Events::IWSN_DEVICES_ATTACHED, self, :on_devices_attached)
     EventBus.subscribe(Events::IWSN_DEVICES_DETACHED, self, :on_devices_detached)

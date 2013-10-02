@@ -10,8 +10,23 @@ module RequestHandler
     return @@uniqueRequestIdentifier += 1
   end
 
-  def handle?(info)
+  def handle_response?(info)
     return !@cache.fetch(info[:requestId]).nil? || (info[:requestId].nil? && @nodeUrns == info[:nodeUrns])
+  end
+
+  def handle_event?(info)
+    eventUrns = info[:nodeUrns]
+    return false if eventUrns.nil?
+    intersection = @nodeUrns & eventUrns
+    return !intersection.empty?
+  end
+
+  def handle?(info)
+    unless info[:requestId].nil?
+      return handle_response?(info)
+    else
+      return handle_event?(info)
+    end
   end
 
   def store(id, request, responses={})
@@ -20,7 +35,11 @@ module RequestHandler
 
   # returns true if the testbed has sent a response for all nodes
   def collection_complete?(id)
-    return @cache.fetch(id)[:responses].count == @nodeUrns.count
+    responses = @cache.fetch(id)[:responses]
+    return false unless responses.count >= @nodeUrns.count
+    @nodeUrns.each {|urn| return false unless responses.include? urn }
+    return true
+
   end
 
   def extract(payload)

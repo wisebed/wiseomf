@@ -80,8 +80,8 @@ module OmfRc::ResourceProxy::WiseRP
     }
     self.inform('UPSTREAM'.to_sym, opts)
   end
-
   def on_devices_attached(payload)
+
     event = payload[:event]
     return unless event.nodeUrns.include?(self.nodeUrn)
     # ---

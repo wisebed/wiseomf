@@ -1,6 +1,7 @@
 require 'socket'
 require 'event_bus'
 require 'set'
+require 'logger'
 require_relative '../protobuf/internal-messages.pb'
 require_relative '../protobuf/external-plugin-messages.pb'
 require_relative '../protobuf/iwsn-messages.pb'
@@ -9,6 +10,8 @@ require_relative '../resources/event_type'
 # the TRConnector handles the tcp socket connection to the testbed runtime
 
 class TRConnector
+  @@log = Logger.new(STDOUT)
+  @@log.level = Logger::DEBUG
   include Singleton
   include De::Uniluebeck::Itm::Tr::Iwsn::Messages
   @thread
@@ -64,29 +67,60 @@ class TRConnector
 
   end
 
+  def write(message)
+    @socket.puts(message) unless @socket.nil?
+  end
+
   # Event Bus Events (Downstream)
 
   def on_flash_image(payload)
-    # TODO pass to testbed
+    pack_and_send_request(payload)
   end
 
   def on_message(payload)
-    # TODO pass to testbed
+    pack_and_send_request(payload)
   end
 
   def on_nodes_reset(payload)
-    # TODO pass to testbed
+    pack_and_send_request(payload)
   end
 
   def on_nodes_connected_request(payload)
-    # TODO pass to testbed
+    pack_and_send_request(payload)
   end
 
   def on_nodes_alive_request(payload)
-    # TODO pass to testbed
+    pack_and_send_request(payload)
   end
 
+  def pack_request(payload)
+    message = Message.new
+    message.type = Message::Type::REQUEST
+    message.request = payload[:request]
 
+    external = ExternalPluginMessage.new
+    external.type = ExternalPluginMessage::Type::IWSN_MESSAGE
+    external.iwsn_message = message
+
+    str = external.serialize_to_string
+
+    @@log.debug "External Message: #{external.to_hash}"
+    @@log.debug "Bytes: #{str.bytes}"
+    @@log.debug "Bytesize: #{str.bytesize}"
+
+    length = [str.bytesize].pack('N')
+    return length, str
+  end
+
+  def pack_and_send_request(payload)
+    length, msg = pack_request(payload)
+    unless @socket.nil?
+      @socket.send(length, 0)
+      @socket.send(msg, 0)
+    else
+      @@log.error('Can\'t write to socket.')
+    end
+  end
 
   # Testbed Events (Upstream)
 
@@ -116,9 +150,9 @@ class TRConnector
       when Message::Type::EVENT
         handleIwsnEvent(message.event)
       when Message::Type::RESPONSE
-        EventBus.publish(Events::IWSN_RESPONSE, event: message.response, requestId: message.response.requestId, nodeUrns: Set.new(message.response.nodeUrn))
+        EventBus.publish(Events::IWSN_RESPONSE, event: message.response, requestId: message.response.requestId, nodeUrns: Set.new([message.response.nodeUrn]))
       when Message::Type::PROGRESS
-        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress, requestId: message.progress.requestId, nodeUrns: Set.new(message.progress.nodeUrn))
+        EventBus.publish(Events::IWSN_PROGRESS, event: message.progress, requestId: message.progress.requestId, nodeUrns: Set.new([message.progress.nodeUrn]))
       when Message::Type::GET_CHANNELPIPELINES_RESPONSE
         EventBus.publish(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, event: message.getChannelPipelinesResponse, requestId: message.getChannelPipelinesResponse.requestId)
 
@@ -128,14 +162,14 @@ class TRConnector
   def handleIwsnEvent(event)
     case event.type
       when Event::Type::UPSTREAM_MESSAGE
-        EventBus.publish(Events::IWSN_UPSTREAM_MESSAGE, event: event.upstreamMessageEvent, eventId: event.eventId, nodeUrns: Set.new(event.upstreamMessageEvent.sourceNodeUrn))
+        EventBus.publish(Events::IWSN_UPSTREAM_MESSAGE, event: event.upstreamMessageEvent, eventId: event.eventId, nodeUrns: Set.new([event.upstreamMessageEvent.sourceNodeUrn]))
       when Event::Type::DEVICES_DETACHED
         EventBus.publish(Events::IWSN_DEVICES_DETACHED, event: event.devicesDetachedEvent, eventId: event.eventId, nodeUrns: Set.new(event.devicesDetachedEvent.nodeUrns))
       when Event::Type::DEVICES_ATTACHED
         EventBus.publish(Events::IWSN_DEVICES_ATTACHED, event: event.devicesAttachedEvent, eventId: event.eventId, nodeUrns: Set.new(event.devicesAttachedEvent.nodeUrns))
       when Event::Type::NOTIFICATION
         unless event.notificationEvent.nodeUrn.nil?
-          EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, eventId: event.eventId, nodeUrns: Set.new(event.notificationEvent.nodeUrn))
+          EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, eventId: event.eventId, nodeUrns: Set.new([event.notificationEvent.nodeUrn]))
         else
           EventBus.publish(Events::IWSN_NOTIFICATION, event: event.notificationEvent, eventId: event.eventId)
         end

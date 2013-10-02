@@ -14,6 +14,7 @@ module OmfRc::ResourceProxy::WisebedReservation
   attr_accessor :reservation_event
 
   @reservation_event
+  @child_hash
 
   register_proxy :wisebed_reservation
 
@@ -22,26 +23,41 @@ module OmfRc::ResourceProxy::WisebedReservation
   property :end_time,   access: :init_only
   property :nodeUrns,   access: :init_only
 
-  # ...
-  # TODO: think about useful properties:
-  #   - a list of sub resources is available as "children"
-  #   - e.g. :nodeUrns as topic identifier.
-
-
   hook :before_ready do |reservation|
     @reservation_event = reservation.opts[:reservationEvent]
+    @child_hash = {}
     # create the "all node group"
     nodeUrns = reservation.opts[:nodeUrns]
-    reservation.create(:wisebed_node, {uid: Utils::UIDHelper::node_group_uid(@reservation_event, nodeUrns), nodeUrns: nodeUrns})
+    child_uid = Utils::UIDHelper::node_group_uid(@reservation_event, nodeUrns)
+    proxy = reservation.create(:wisebed_node, {uid: child_uid, nodeUrns: nodeUrns})
+    @child_hash[child_uid] = proxy
     # create the "single node groups"
     nodeUrns.each {|nodeUrn|
-      set = Set.new(nodeUrn)
-      reservation.create(:wisebed_node, {uid: Utils::UIDHelper::node_group_uid(@reservation_event, set), nodeUrns: set})
+      set = Set.new([nodeUrn])
+      cuid = Utils::UIDHelper::node_group_uid(@reservation_event, set)
+      p = reservation.create(:wisebed_node, {uid: cuid, nodeUrns: set})
+      @child_hash[cuid] = p
     }
   end
 
   hook :before_release do |reservation|
     debug "#{reservation.uid} is now released"
+  end
+
+
+  # inherited methods
+  def create(type, opts = {}, creation_opts = {}, &creation_callback)
+    child_nodeUrns = opts[:nodeUrns]
+    if child_nodeUrns.nil?
+      inform_creation_failed('Please provide a group of node urns to create a group topic for.')
+      return nil
+    end
+    child_uid = Utils::UIDHelper.node_group_uid(@reservation_event, child_nodeUrns)
+    if @child_hash.include? child_uid
+      inform('CREATION.FAILED'.to_sym, {reason: ' There exists an appropriate group topic for the provided set of nodeUrns.', uid: child_uid})
+      return nil
+    end
+    return super.create(type, opts, creation_opts, &creation_callback)
   end
 
 end
