@@ -27,10 +27,14 @@ module Utils
       keys = reservation.secretReservationKeys
       keys.sort!{|a,b|
         prefixComp = a.nodeUrnPrefix.downcase <=> b.nodeUrnPrefix.downcase
-        return prefixComp unless prefixComp == 0
         userComp = a.username <=> b.username
-        return userComp unless userComp == 0
-        return a.key <=> b.key
+        if prefixComp != 0
+          prefixComp
+        elsif userComp != 0
+         userComp
+        else
+          a.key <=> b.key
+        end
       }
       return keys
     end
@@ -40,7 +44,7 @@ module Utils
     end
 
     def self.from_uid(uid)
-      json = JSON.parse(Base64.decode64(uid))
+      return JSON.parse(Base64.decode64(uid))
     end
   end
 end

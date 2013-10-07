@@ -1,23 +1,23 @@
 require 'lrucache'
 require 'set'
 module RequestHandler
-  attr_accessor :nodeUrns
+  attr_accessor :nodeUrns, :cache
   @@uniqueRequestIdentifier = 0
-  @cache = LRUCache.new(ttl: 30.minutes)
-  @nodeUrns = Set.new
+  @cache
+  @nodeUrns
 
   def requestId
     return @@uniqueRequestIdentifier += 1
   end
 
   def handle_response?(info)
-    return !@cache.fetch(info[:requestId]).nil? || (info[:requestId].nil? && @nodeUrns == info[:nodeUrns])
+    return !self.cache.fetch(info[:requestId]).nil? || (info[:requestId].nil? && self.nodeUrns == info[:nodeUrns])
   end
 
   def handle_event?(info)
     eventUrns = info[:nodeUrns]
     return false if eventUrns.nil?
-    intersection = @nodeUrns & eventUrns
+    intersection = self.nodeUrns & eventUrns
     return !intersection.empty?
   end
 
@@ -30,14 +30,14 @@ module RequestHandler
   end
 
   def store(id, request, responses={})
-    @cache.store(id, {request: request, responses: responses})
+    self.cache.store(id, {request: request, responses: responses})
   end
 
   # returns true if the testbed has sent a response for all nodes
   def collection_complete?(id)
-    responses = @cache.fetch(id)[:responses]
-    return false unless responses.count >= @nodeUrns.count
-    @nodeUrns.each {|urn| return false unless responses.include? urn }
+    responses = self.cache.fetch(id)[:responses]
+    return false unless responses.count >= self.nodeUrns.count
+    self.nodeUrns.each {|urn| return false unless responses.include? urn }
     return true
 
   end
@@ -47,7 +47,7 @@ module RequestHandler
     nodes = payload[:nodeUrns]
     id = payload[:requestId]
     unless id.nil?
-      cached = @cache.fetch(id)
+      cached = self.cache.fetch(id)
       responses = cached[:responses]
       req = cached[:request]
     else

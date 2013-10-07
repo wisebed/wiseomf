@@ -20,13 +20,13 @@ class ResourceProxyManager
   end
 
   def on_reservation_started(payload)
-    info "on_reservation_started"
+    debug 'on_reservation_started'
     reservation = payload[:event]
     if reservation.secretReservationKeys.count > 0
       key = Utils::UIDHelper.reservation_uid(reservation)
+      info "Starting reservation with key \"#{key}\"."
       opts = {uid: key, start_time: reservation.interval_start, end_time: reservation.interval_end, nodeUrns: reservation.nodeUrns, reservationEvent: reservation}
       proxy = OmfRc::ResourceFactory.create(:wisebed_reservation,opts)
-      proxy
       @resourceProxies[key] = proxy
     else
       error 'There are no reservation keys in the list. Can\'t create new reservation proxy.'
@@ -34,6 +34,7 @@ class ResourceProxyManager
   end
 
   def on_reservation_ended(payload)
+    debug 'on_reservation_ended'
     reservation = payload[:event]
     key = Utils::UIDHelper.reservation_uid(reservation)
     proxy = @resourceProxies.delete(key)

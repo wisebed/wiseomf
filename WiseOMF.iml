@@ -15,6 +15,7 @@
     <orderEntry type="library" scope="PROVIDED" name="event_bus (v1.0.0, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="eventmachine (v1.0.3, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="girl_friday (v0.11.2, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="gli (v2.5.6, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="hashie (v1.2.0, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="i18n (v0.6.4, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="json (v1.7.7, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
@@ -29,6 +30,7 @@
     <orderEntry type="library" scope="PROVIDED" name="niceogiri (v1.1.2, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="nokogiri (v1.6.0, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="omf_common (v6.0.3, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="omf_ec (v6.0.3, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="omf_rc (v6.0.3, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="oml4r (v2.9.1, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="rubinius-actor (v0.0.2, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />

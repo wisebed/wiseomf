@@ -89,7 +89,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   end
 
   def request_nodeUrns
-    @nodeUrns
+    self.nodeUrns
   end
 
   # Handle Testbed Responses (Downstream Events)
@@ -104,7 +104,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     }
     if self.collection_complete?(id)
       info "Request #{id} is completed. Informing EC."
-      self.inform('STATUS.CHANNEL_PIPELINES_RESPONSE'.to_sym, self.build_inform(id, responses), uid)
+      self.inform('STATUS.CHANNEL_PIPELINES_RESPONSE'.to_sym, self.build_inform(id, responses))
     end
   end
 
@@ -120,7 +120,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
 
     if self.collection_complete?(id)
       info "Request #{id} is completed. Informing EC."
-      self.inform('STATUS.RESPONSE'.to_sym, self.build_inform(id, responses), uid)
+      self.inform('STATUS.RESPONSE'.to_sym, self.build_inform(id, responses))
     end
 
   end
@@ -132,7 +132,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
       error 'SingleNodeProgress has more than one node'
       return
     end
-    self.inform('STATUS.PROGRESS'.to_sym, {requestId: id, nodeUrns: nodes, progress: event.progressInPercent}, uid)
+    self.inform('STATUS.PROGRESS'.to_sym, {requestId: id, nodeUrns: nodes, progress: event.progressInPercent})
   end
 
 
@@ -141,44 +141,47 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_upstream_message(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    intersection = @nodeUrns & nodes
-    self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes}, uid)
+    intersection = self.nodeUrns & nodes
+    self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
   end
 
   def on_devices_attached(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    intersection = @nodeUrns & nodes
-    self.inform('STATUS.NODES_ATTACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'}, uid)
+    intersection = self.nodeUrns & nodes
+    self.inform('STATUS.NODES_ATTACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
   end
 
   def on_devices_detached(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    intersection = @nodeUrns & nodes
-    self.inform('WARN.NODES_DETACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'}, uid)
+    intersection = self.nodeUrns & nodes
+    self.inform('WARN.NODES_DETACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
   end
 
   def on_notification(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    intersection = @nodeUrns & nodes
-    self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.message}, uid)
+    intersection = self.nodeUrns & nodes
+    self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
   end
 
   # Hooks
   hook :before_ready do |ngp|
-    self.nodeUrns = ngp.opts[:nodeUrns].to_set
+    debug "before_ready: #{ngp}"
+    ngp.nodeUrns = ngp.opts.nodeUrns.to_set
+    ngp.cache = LRUCache.new(ttl: 30.minutes)
     # Testbed Responses
-    EventBus.subscribe(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, self, :on_channel_pipelines_response)
-    EventBus.subscribe(Events::IWSN_RESPONSE, self, :on_node_response)
-    EventBus.subscribe(Events::IWSN_PROGRESS, self, :on_node_progress)
+    EventBus.subscribe(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, ngp, :on_channel_pipelines_response)
+    EventBus.subscribe(Events::IWSN_RESPONSE, ngp, :on_node_response)
+    EventBus.subscribe(Events::IWSN_PROGRESS, ngp, :on_node_progress)
 
     # Testbed Events
-    EventBus.subscribe(Events::IWSN_UPSTREAM_MESSAGE, self, :on_upstream_message)
-    EventBus.subscribe(Events::IWSN_DEVICES_ATTACHED, self, :on_devices_attached)
-    EventBus.subscribe(Events::IWSN_DEVICES_DETACHED, self, :on_devices_detached)
-    EventBus.subscribe(Events::IWSN_NOTIFICATION, self, :on_notification)
+    EventBus.subscribe(Events::IWSN_UPSTREAM_MESSAGE, ngp, :on_upstream_message)
+    EventBus.subscribe(Events::IWSN_DEVICES_ATTACHED, ngp, :on_devices_attached)
+    EventBus.subscribe(Events::IWSN_DEVICES_DETACHED, ngp, :on_devices_detached)
+    EventBus.subscribe(Events::IWSN_NOTIFICATION, ngp, :on_notification)
+    info "Opts: #{ngp.opts}"
   end
 
 end

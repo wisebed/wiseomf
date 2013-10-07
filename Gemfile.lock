@@ -24,6 +24,7 @@ GEM
     girl_friday (0.11.2)
       connection_pool (~> 1.0)
       rubinius-actor
+    gli (2.5.6)
     hashie (1.2.0)
     i18n (0.6.4)
     json (1.7.7)
@@ -52,6 +53,9 @@ GEM
       json (~> 1.7.7)
       logging (~> 1.7.1)
       oml4r (~> 2.9.1)
+    omf_ec (6.0.3)
+      gli (~> 2.5.3)
+      omf_common (~> 6.0.2)
     omf_rc (6.0.3)
       cocaine (~> 0.3.0)
       mocha
@@ -75,5 +79,6 @@ PLATFORMS
 DEPENDENCIES
   event_bus
   lrucache
+  omf_ec
   omf_rc
   ruby-protocol-buffers

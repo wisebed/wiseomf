@@ -1,5 +1,6 @@
 ---
-:xmpp_url:  xmpp://localhost
-:env:       :development
+:xmpp_url:  xmpp://rc:rc@localhost
+:env:   development
+:debug:     true
 :trhost:    localhost
 :trport:    9998
