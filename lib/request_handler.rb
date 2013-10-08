@@ -37,7 +37,7 @@ module RequestHandler
   def collection_complete?(id)
     responses = self.cache.fetch(id)[:responses]
     return false unless responses.count >= self.nodeUrns.count
-    self.nodeUrns.each {|urn| return false unless responses.include? urn }
+    self.nodeUrns.each { |urn| return false unless responses.include? urn }
     return true
 
   end
@@ -48,8 +48,10 @@ module RequestHandler
     id = payload[:requestId]
     unless id.nil?
       cached = self.cache.fetch(id)
-      responses = cached[:responses]
-      req = cached[:request]
+      unless cached.nil?
+        responses = cached[:responses]
+        req = cached[:request]
+      end
     else
       responses = nil
       req = nil

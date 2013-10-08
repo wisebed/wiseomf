@@ -24,14 +24,15 @@ module Utils
     end
 
     def self.sort_secret_reservation_keys(reservation)
-      keys = reservation.secretReservationKeys
+      keys = reservation.to_hash[:secretReservationKeys]
+      # we don't need the username. Delete it from al SRKs:
+      keys.each{|k| k.delete(:username)}
+
+      # Sort the keys:
       keys.sort!{|a,b|
         prefixComp = a.nodeUrnPrefix.downcase <=> b.nodeUrnPrefix.downcase
-        userComp = a.username <=> b.username
         if prefixComp != 0
           prefixComp
-        elsif userComp != 0
-         userComp
         else
           a.key <=> b.key
         end

@@ -44,15 +44,17 @@ class TRConnector
       while !@abort
         begin
           lengthField = @socket.read(4)
-          length = lengthField.unpack('N').first
-          data = @socket.read(length)
-          epm = ExternalPluginMessage.parse(data)
-          #info "parse success"
-          case epm.type
-            when ExternalPluginMessage::Type::INTERNAL_MESSAGE
-              self.handleInternalMessage(epm)
-            when ExternalPluginMessage::Type::IWSN_MESSAGE
-              self.handleIwsnMessage(epm)
+          unless lengthField.nil?
+            length = lengthField.unpack('N').first
+            data = @socket.read(length)
+            epm = ExternalPluginMessage.parse(data)
+            #info "parse success"
+            case epm.type
+              when ExternalPluginMessage::Type::INTERNAL_MESSAGE
+                self.handleInternalMessage(epm)
+              when ExternalPluginMessage::Type::IWSN_MESSAGE
+                self.handleIwsnMessage(epm)
+            end
           end
         rescue Exception => e
           error e
@@ -145,7 +147,7 @@ class TRConnector
   def handleIwsnMessage(epm)
     #info "Iwsn Message: #{epm.iwsn_message.to_s}"
     message = epm.iwsn_message
-
+    debug "Received iwsn message from testbed: #{message.to_hash}"
     case message.type
       when Message::Type::EVENT
         handleIwsnEvent(message.event)

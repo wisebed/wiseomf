@@ -1,24 +1,54 @@
+require 'yaml'
 
-defApplication('wiseomf_test') {|app|
-  debug "Defining app #{app}"
-  app.description = 'Simple omf rc test experiment description'
-  app.defProperty('reservation_id', 'The wisebed reservation id (the reservation topic)', '--id', {type: :string})
+require_relative 'utils/uid_helper'
+
+reservation = YAML.load_file('./ec/reservation_definition.yml')
+
+defProperty('startTime', Time.now, 'The experiment start time')
+
+defProperty('reservation', reservation, 'Informations about a current reservation (to build the reservation id from)')
+defProperty('reservation_id', Utils::UIDHelper.reservation_uid(reservation) , 'The reservation id')
+defProperty('nodeUrns', reservation[:nodeUrns], 'An array of node urns which are part of this experiment')
+
+defGroup('ReservationGroup', property.reservation_id.value)
+defGroup('AllNodes', Utils::UIDHelper.node_group_uid(reservation, reservation[:nodeUrns]))
+
+reservation[:nodeUrns].each {|urn|
+  defGroup(urn, Utils::UIDHelper.node_group_uid(reservation, [urn]))
 }
 
-defGroup('ReservationGroup', 'W3sibm9kZVVyblByZWZpeCI6InVybjp3aXNlYmVkOnV6bDEiLCJ1c2VybmFt
-ZSI6InVzZXIiLCJrZXkiOiIxIn0seyJub2RlVXJuUHJlZml4IjoidXJuOndp
-c2ViZWQ6dXpsMiIsInVzZXJuYW1lIjoidXNlciIsImtleSI6IjIifV0=
-') { |g|
-  debug "Defining group #{g}"
-  g.addApplication('wiseomf_test') {|app| info "Adding #{app}"}
-}
+info "All Groups created!"
+# TODO groups contain only a single proxy for each node group
+#   - how to dynamically create groups with custom topic ids?
+#   - how to request property values beside of measurements?
+#   - how to interact with the testbed (event based)
+
+
+defEvent(:START) do |event|
+  seconds = Time.now - property.startTime.value
+  info "Number of seconds gone by: #{seconds}"
+  if seconds > 25
+    event.fire
+  end
+end
+
+info "Defined START Event!"
+
+onEvent(:START) do |event|
+  warn "Fire START: #{event}"
+  group('AllNodes') {|g|
+    warn "Direct nodeUrns response: #{g.resources[type: :wisebed_node].nodeUrns}"
+    warn "Direct alive response: #{g.resources[type: :wisebed_node].alive}"
+  }
+
+end
 
 onEvent(:ALL_UP) {|event|
-  info 'Starting WiseOMF test experiment'
-  allGroups.startApplications
+  warn 'ALL_UP'
+  group('AllNodes') {|g|
+    warn "Direct nodeUrns response: #{g.resources[type: :wisebed_node].nodeUrns}"
+    warn "Direct alive response: #{g.resources[type: :wisebed_node].alive}"
+  }
 }
 
-onEvent(:ALL_INTERFACE_UP) {|event|
-  info 'Received CREATION OK'
-}
 

@@ -55,6 +55,7 @@ module OmfRc::ResourceProxy::WisebedReservation
       inform_creation_failed('Please provide a group of node urns to create a group topic for.')
       return nil
     end
+    # FIXME validate child node urns
     child_uid = Utils::UIDHelper.node_group_uid(self.reservation_event, child_nodeUrns)
     if self.child_hash.include? child_uid
       debug "The topic '#{child_uid}' already exists."

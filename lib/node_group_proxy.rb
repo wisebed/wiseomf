@@ -21,6 +21,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
 
   # Configure and Request Methods (Upstream Events)
   def configure_image(value)
+    debug self.uid
+    info "configure_image: value = #{value}"
     id = self.requestId
     fir = FlashImagesRequest.new
     fir.nodeUrns = self.nodeUrns
@@ -35,6 +37,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   end
 
   def request_alive
+    debug self.uid
+    info "request_alive"
     id = self.requestId
     ana = AreNodesAliveRequest.new
     ana.nodeUrns = self.nodeUrns
@@ -48,19 +52,23 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   end
 
   def request_connected
+    debug self.uid
+    info "request_connected"
     id = self.requestId
     anc = AreNodesConnectedRequest.new
     anc.nodeUrns = self.nodeUrns
     req = Request.new
     req.requestId = id
     req.type = Request::Type::ARE_NODES_CONNECTED
-    req.areNodesAliveConnected = anc
+    req.areNodesConnectedRequest = anc
     self.store(id, req)
     EventBus.publish(Events::DOWN_ARE_NODES_CONNECTED, request: req)
     return {requestId: id, message: 'Your request will be performed.'}
   end
 
   def configure_reset(value)
+    debug self.uid
+    info "configure_reset: value = #{value}"
     # TODO handle value as flag?
     id = self.requestId
     rr = ResetNodesRequest.new
@@ -75,6 +83,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   end
 
   def configure_message(value)
+    debug self.uid
+    info "configure_message: value = #{value}"
     id = self.requestId
     dmr = SendDownstreamMessagesRequest.new
     dmr.targetNodeUrns = self.nodeUrns
@@ -111,6 +121,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_node_response(payload)
     return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
+    debug self.uid
+    info "on_node_response: event = #{event}"
     if nodes.count > 1
       error 'SingleNodeResponse has more than one node'
       return
@@ -128,6 +140,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_node_progress(payload)
     return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
+    debug self.uid
+    info "on_node_progress: event = #{event}"
     if nodes.count > 1
       error 'SingleNodeProgress has more than one node'
       return
@@ -141,6 +155,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_upstream_message(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
+    info "on_upstream_message: event = #{event}"
     intersection = self.nodeUrns & nodes
     self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
   end
@@ -148,6 +163,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_devices_attached(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
+    debug self.uid
+    info "on_devices_attached: event = #{event}"
     intersection = self.nodeUrns & nodes
     self.inform('STATUS.NODES_ATTACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
   end
@@ -155,6 +172,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_devices_detached(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
+    debug self.uid
+    info "on_devices_detached: event = #{event}"
     intersection = self.nodeUrns & nodes
     self.inform('WARN.NODES_DETACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
   end
@@ -162,6 +181,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_notification(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
+    info "on_notification: event = #{event}"
     intersection = self.nodeUrns & nodes
     self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
   end
