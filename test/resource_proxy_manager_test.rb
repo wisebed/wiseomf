@@ -18,13 +18,14 @@ require_relative '../lib/resource_proxy_manager'
 
 class ResourceProxyManagerTest < Test::Unit::TestCase
   include De::Uniluebeck::Itm::Tr::Iwsn::Messages
-
+  @reservation
 
 
 
   # Called before every test method runs. Can be used
   # to set up fixture information.
   def setup
+    EventBus.subscribe(Events::DOWN_ARE_NODES_ALIVE, self, :on_alive_request)
     info "Startup"
     Thread.new {
       OmfCommon.init(CONFIG[:env], communication: {url: CONFIG[:xmpp_url]}) {
@@ -62,38 +63,27 @@ class ResourceProxyManagerTest < Test::Unit::TestCase
     re.secretReservationKeys = [ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl1:", key: "1"),
                                 ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl2:", key: "2")]
     assert(re.valid?, "The ReservationEvent is invalid!")
+    @reservation = re
     info "ReservationEvent created!"
     EventBus.publish(Events::RESERVATION_STARTED, event: re)
     info "ReservationEvent published!"
-
-    2.times { |i|
-      debug "Sleeping #{i}: 10 seconds"
-      sleep(10)
-    }
-    response = SingleNodeResponse.new
-    response.reservationId = Utils::UIDHelper.reservation_uid(re).gsub("-", "\n")
-    response.nodeUrn = "urn:wisebed:uzl1:0x1"
-    response.requestId = 1
-    response.statusCode = 1
-    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
-    sleep(5)
-    response.nodeUrn= "urn:wisebed:uzl1:0x2"
-    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
     while true
       sleep (10)
     end
 
-    #sleep(5)
-    #re2 = ReservationEvent.new
-    #re2.interval_start = DateTime.now.to_s
-    #re2.interval_end = (DateTime.now + 1.hour).to_s
-    #re2.type = ReservationEvent::Type::ENDED
-    #re2.nodeUrns = ["urn:wisebed:uzl1:0x112", "urn:wisebed:uzl1:0x33", "urn:wisebed:uzl1:0x033"]
-    #re2.secretReservationKeys = [ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl1", key: "1"),
-    #                            ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl2", key: "2")]
-    #assert(re.valid?, "The ReservationEvent is invalid!")
-    #EventBus.publish(Events::RESERVATION_ENDED, event: re2)
-    #sleep(5)
+  end
+
+  def on_alive_request(payload)
+    response = SingleNodeResponse.new
+    response.reservationId = Utils::UIDHelper.reservation_uid(@reservation).gsub("-", "\n")
+    response.nodeUrn = "urn:wisebed:uzl1:0x1"
+    response.requestId = payload[:request].requestId
+    response.statusCode = 1
+    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
+    OmfCommon.el.after(5) {
+    response.nodeUrn= "urn:wisebed:uzl1:0x2"
+    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
+    }
   end
 
 end
