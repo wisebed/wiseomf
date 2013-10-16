@@ -31,6 +31,7 @@ class ResourceProxyManager
     else
       error 'There are no reservation keys in the list. Can\'t create new reservation proxy.'
     end
+    debug 'end on_reservation_started'
   end
 
   def on_reservation_ended(payload)
@@ -42,9 +43,7 @@ class ResourceProxyManager
   end
 
   def handle_interrupt
-    @resourceProxies.each { |k, v|
-      v.release_self
-    }
+    warn 'Interrupt!'
   end
 
 end

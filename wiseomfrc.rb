@@ -28,12 +28,13 @@ ResourceProxyManager.instance
 info "WiseOMF started!"
 
 OmfRc::ResourceFactory.load_additional_resource_proxies('./lib')
-OmfCommon.init(CONFIG[:env], communication: {url: CONFIG[:xmpp_url]}) {
-  OmfCommon.comm.on_connected {|comm|
+OmfCommon.init(CONFIG[:env], communication: { url: CONFIG[:xmpp_url] }) do
+  debug "OmfCommon.init"
+  OmfCommon.comm.on_connected do |comm|
     info "WiseOMF >> Connected to XMPP server"
     comm.on_interrupted {
       puts "WiseOMF >> Interrupt!"
       ResourceProxyManager.instance.handle_interrupt
     }
-  }
-}
+  end
+end

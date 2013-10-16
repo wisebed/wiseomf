@@ -38,8 +38,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
 
   def request_alive
     debug self.uid
-    info "request_alive"
     id = self.requestId
+    info "request_alive #{id}"
     ana = AreNodesAliveRequest.new
     ana.nodeUrns = self.nodeUrns
     req = Request.new
@@ -48,7 +48,8 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     req.areNodesAliveRequest = ana
     self.store(id, req)
     EventBus.publish(Events::DOWN_ARE_NODES_ALIVE, request: req)
-    return {requestId: id, message: 'Your request will be performed.'}
+    response = {requestId: id, message: 'Your request will be performed.'}
+    return response
   end
 
   def request_connected
@@ -114,7 +115,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     }
     if self.collection_complete?(id)
       info "Request #{id} is completed. Informing EC."
-      self.inform('STATUS.CHANNEL_PIPELINES_RESPONSE'.to_sym, self.build_inform(id, responses))
+      self.inform_status(self.build_inform(id, responses, :channel_pipelines_response))
     end
   end
 
@@ -132,7 +133,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
 
     if self.collection_complete?(id)
       info "Request #{id} is completed. Informing EC."
-      self.inform('STATUS.RESPONSE'.to_sym, self.build_inform(id, responses))
+      self.inform_status(self.build_inform(id, responses, :response))
     end
 
   end
@@ -146,7 +147,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
       error 'SingleNodeProgress has more than one node'
       return
     end
-    self.inform('STATUS.PROGRESS'.to_sym, {requestId: id, nodeUrns: nodes, progress: event.progressInPercent})
+    self.inform_status({type: :progress, requestId: id, nodeUrns: nodes, progress: event.progressInPercent})
   end
 
 
@@ -157,7 +158,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     id, req, responses, event, nodes = self.extract(payload)
     info "on_upstream_message: event = #{event}"
     intersection = self.nodeUrns & nodes
-    self.inform('STATUS.MESSAGE'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
+    self.inform_status({type: :message, nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
   end
 
   def on_devices_attached(payload)
@@ -166,7 +167,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     debug self.uid
     info "on_devices_attached: event = #{event}"
     intersection = self.nodeUrns & nodes
-    self.inform('STATUS.NODES_ATTACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
+    self.inform_status({type: :nodes_attached, nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
   end
 
   def on_devices_detached(payload)
@@ -175,7 +176,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     debug self.uid
     info "on_devices_detached: event = #{event}"
     intersection = self.nodeUrns & nodes
-    self.inform('WARN.NODES_DETACHED'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
+    self.inform_warn({type: :nodes_detached, nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
   end
 
   def on_notification(payload)
@@ -183,13 +184,13 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     id, req, responses, event, nodes = self.extract(payload)
     info "on_notification: event = #{event}"
     intersection = self.nodeUrns & nodes
-    self.inform('STATUS.NOTIFICATION'.to_sym, {nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
+    self.inform_status({type: :notification, nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
   end
 
   # Hooks
   hook :before_ready do |ngp|
     debug "before_ready: #{ngp}"
-    ngp.nodeUrns = ngp.opts.nodeUrns.to_set
+    ngp.nodeUrns = Set.new(ngp.opts.urns)
     ngp.cache = LRUCache.new(ttl: 30.minutes)
     # Testbed Responses
     EventBus.subscribe(Events::IWSN_GET_CHANNEL_PIPELINES_RESPONSE, ngp, :on_channel_pipelines_response)
@@ -202,6 +203,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     EventBus.subscribe(Events::IWSN_DEVICES_DETACHED, ngp, :on_devices_detached)
     EventBus.subscribe(Events::IWSN_NOTIFICATION, ngp, :on_notification)
     info "Opts: #{ngp.opts}"
+    info "Nodes in Group: #{ngp.nodeUrns.to_a}"
   end
 
 end

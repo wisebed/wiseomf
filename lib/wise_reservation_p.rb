@@ -24,23 +24,26 @@ module OmfRc::ResourceProxy::WisebedReservation
   property :nodeUrns,   access: :init_only
 
   hook :before_ready do |reservation|
-    debug 'ReservationProxy: before_ready'
+    debug 'before_ready'
     reservation.reservation_event = reservation.opts.reservationEvent
     reservation.child_hash = {}
     # create the "all node group"
     nodeUrns = reservation.opts.nodeUrns
     child_uid = Utils::UIDHelper::node_group_uid(reservation.reservation_event, nodeUrns)
-    proxy = reservation.create(:wisebed_node, {uid: child_uid, nodeUrns: nodeUrns})
+
+    proxy = reservation.create(:wisebed_node, {uid: child_uid, urns: nodeUrns})
     reservation.child_hash[child_uid] = proxy
-    # create the "single node groups"
+    ## create the "single node groups"
     nodeUrns.each {|nodeUrn|
       set = Set.new([nodeUrn])
       cuid = Utils::UIDHelper::node_group_uid(reservation.reservation_event, set)
-      p = reservation.create(:wisebed_node, {uid: cuid, nodeUrns: set})
+      p = reservation.create(:wisebed_node, {uid: cuid, urns: set})
       reservation.child_hash[cuid] = p
     }
+
     debug "Reservation Proxy is ready with #{reservation.child_hash.count} node group proxies."
   end
+
 
   hook :before_release do |reservation|
     debug "#{reservation.uid} is now released"
@@ -49,7 +52,7 @@ module OmfRc::ResourceProxy::WisebedReservation
 
   # inherited methods
   def create(type, opts = {}, creation_opts = {}, &creation_callback)
-    child_nodeUrns = opts[:nodeUrns]
+    child_nodeUrns = opts[:urns]
     if child_nodeUrns.nil?
       error "No nodeUrns provided.."
       inform_creation_failed('Please provide a group of node urns to create a group topic for.')

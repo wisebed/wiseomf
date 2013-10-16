@@ -59,8 +59,17 @@ module RequestHandler
     return id, req, responses, event, nodes
   end
 
-  def build_inform(id, responses)
-    return {requestId: id, responses: responses}
+  def build_inform(id, responses, type = :response)
+    cleaned_responses = []
+
+    responses.each {|k,v|
+      arr = {}
+      arr[:nodeUrn] = k
+      arr.merge!(v) {|key, v1, v2| v1 }
+      cleaned_responses << arr
+    }
+
+    return {requestId: id, type: type, responses: cleaned_responses}
   end
 
 end

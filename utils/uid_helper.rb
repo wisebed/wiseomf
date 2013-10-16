@@ -1,5 +1,6 @@
 require 'base64'
 require 'json'
+require 'protocol_buffers'
 
 require_relative '../protobuf/external-plugin-messages.pb'
 require_relative '../protobuf/internal-messages.pb'
@@ -30,22 +31,22 @@ module Utils
 
       # Sort the keys:
       keys.sort!{|a,b|
-        prefixComp = a.nodeUrnPrefix.downcase <=> b.nodeUrnPrefix.downcase
+        prefixComp = a.to_hash[:nodeUrnPrefix].downcase <=> b.to_hash[:nodeUrnPrefix].downcase
         if prefixComp != 0
           prefixComp
         else
-          a.key <=> b.key
+          a.to_hash[:key] <=> b.to_hash[:key]
         end
       }
       return keys
     end
 
     def self.to_uid(object)
-      return Base64.encode64(JSON.generate(object))
+      return Base64.encode64(JSON.generate(object)).gsub("\n", "-")
     end
 
     def self.from_uid(uid)
-      return JSON.parse(Base64.decode64(uid))
+      return JSON.parse(Base64.decode64(uid.gsub("-","\n")))
     end
   end
 end

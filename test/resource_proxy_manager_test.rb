@@ -33,7 +33,7 @@ class ResourceProxyManagerTest < Test::Unit::TestCase
           # Test end???
           comm.on_interrupted {
             puts "WiseOMF >> Interrupt!"
-            ResourceProxyManager.instance.handleInterrupt
+            ResourceProxyManager.instance.handle_interrupt
           }
         }
       }
@@ -58,14 +58,27 @@ class ResourceProxyManagerTest < Test::Unit::TestCase
     re.interval_start = DateTime.now.to_s
     re.interval_end = (DateTime.now + 1.hour).to_s
     re.type = ReservationEvent::Type::STARTED
-    re.nodeUrns = ["urn:wisebed:uzl1:0x112", "urn:wisebed:uzl1:0x33", "urn:wisebed:uzl1:0x033"]
-    re.secretReservationKeys = [ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl1", key: "1"),
-                                ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl2", key: "2")]
+    re.nodeUrns = ["urn:wisebed:uzl1:0x1", "urn:wisebed:uzl1:0x2"]
+    re.secretReservationKeys = [ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl1:", key: "1"),
+                                ReservationEvent::SecretReservationKey.new(username: "user", nodeUrnPrefix: "urn:wisebed:uzl2:", key: "2")]
     assert(re.valid?, "The ReservationEvent is invalid!")
     info "ReservationEvent created!"
     EventBus.publish(Events::RESERVATION_STARTED, event: re)
     info "ReservationEvent published!"
 
+    2.times { |i|
+      debug "Sleeping #{i}: 10 seconds"
+      sleep(10)
+    }
+    response = SingleNodeResponse.new
+    response.reservationId = Utils::UIDHelper.reservation_uid(re).gsub("-", "\n")
+    response.nodeUrn = "urn:wisebed:uzl1:0x1"
+    response.requestId = 1
+    response.statusCode = 1
+    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
+    sleep(5)
+    response.nodeUrn= "urn:wisebed:uzl1:0x2"
+    EventBus.publish(Events::IWSN_RESPONSE, event: response, requestId: response.requestId, nodeUrns: Set.new([response.nodeUrn]))
     while true
       sleep (10)
     end
