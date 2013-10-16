@@ -17,8 +17,8 @@ onEvent :ALL_NODES_UP do
     #warn "Direct alive response: #{g.resources.alive.inspect}"
     info "Sending alive request to AllNodes"
 
-    g.topic.request([:alive], {}) {|msg|
-      warn "Received #{msg.properties.alive}"
+    g.topic.request([:alive], {}) { |msg|
+      warn "Callback: #{msg.properties.alive}"
     }
     g.topic.on_message(:inform_status) { |msg|
       warn "Event: #{msg.to_yaml}"

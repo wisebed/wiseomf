@@ -20,25 +20,25 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   register_proxy :wisebed_node, :create_by => :wisebed_reservation
 
   # Configure and Request Methods (Upstream Events)
-  def configure_image(value)
+  def configure_image(payload)
     debug self.uid
-    info "configure_image: value = #{value}"
-    id = self.requestId
+    info "configure_image: value = #{payload.value}"
+    id = payload.requestId
     fir = FlashImagesRequest.new
     fir.nodeUrns = self.nodeUrns
-    fir.image = value
+    fir.image = payload.value
     req = Request.new
     req.requestId = id
     req.type = Request::Type::FLASH_IMAGES
     req.flashImagesRequest = fir
     self.store(id, req)
     EventBus.publish(Events::DOWN_FLASH_IMAGE, request: req)
-    return {requestId: id, message: 'The flash request will be performed. You\'ll recive progress notifications.'}
+    return nil
   end
 
-  def request_alive
+  def configure_alive(requestId)
     debug self.uid
-    id = self.requestId
+    id = requestId
     info "request_alive #{id}"
     ana = AreNodesAliveRequest.new
     ana.nodeUrns = self.nodeUrns
@@ -48,14 +48,13 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     req.areNodesAliveRequest = ana
     self.store(id, req)
     EventBus.publish(Events::DOWN_ARE_NODES_ALIVE, request: req)
-    response = {requestId: id, message: 'Your request will be performed.'}
-    return response
+    return nil
   end
 
-  def request_connected
+  def configure_connected(requestId)
     debug self.uid
     info "request_connected"
-    id = self.requestId
+    id = requestId
     anc = AreNodesConnectedRequest.new
     anc.nodeUrns = self.nodeUrns
     req = Request.new
@@ -64,39 +63,38 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     req.areNodesConnectedRequest = anc
     self.store(id, req)
     EventBus.publish(Events::DOWN_ARE_NODES_CONNECTED, request: req)
-    return {requestId: id, message: 'Your request will be performed.'}
+    return nil
   end
 
-  def configure_reset(value)
+  def configure_reset(payload)
     debug self.uid
-    info "configure_reset: value = #{value}"
+    info "configure_reset: value = #{payload.value}"
     # TODO handle value as flag?
-    id = self.requestId
     rr = ResetNodesRequest.new
     rr.nodeUrns = self.nodeUrns
     req = Request.new
-    req.requestId = id
+    req.requestId = payload.requestId
     req.type = Request::Type::RESET_NODES
     req.resetNodesRequest = rr
-    self.store(id, req)
+    self.store(payload.requestId, req)
     EventBus.publish(Events::DOWN_RESET, request: req)
-    return {requestId: id, message: 'Your configure command will be performed.'}
+    return nil
   end
 
-  def configure_message(value)
+  def configure_message(payload)
     debug self.uid
-    info "configure_message: value = #{value}"
-    id = self.requestId
+    info "configure_message: value = #{payload.value}"
+    id = payload.requestId
     dmr = SendDownstreamMessagesRequest.new
     dmr.targetNodeUrns = self.nodeUrns
-    dmr.messageBytes = value
+    dmr.messageBytes = payload.value
     req = Request.new
     req.requestId = id
     req.type = Request::Type::SEND_DOWNSTREAM_MESSAGES
     req.sendDownstreamMessagesRequest = dmr
     self.store(id, req)
     EventBus.publish(Events::DOWN_MESSAGE, request: req)
-    return {requestId: id, message: 'Your configure command will be performed.'}
+    return nil
   end
 
   def request_nodeUrns
@@ -123,7 +121,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
     debug self.uid
-    info "on_node_response: event = #{event}"
+    info "on_node_response: event = #{event.to_hash}"
     if nodes.count > 1
       error 'SingleNodeResponse has more than one node'
       return
@@ -142,7 +140,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     return unless handle_response? payload
     id, req, responses, event, nodes = self.extract(payload)
     debug self.uid
-    info "on_node_progress: event = #{event}"
+    info "on_node_progress: event = #{event.to_hash}"
     if nodes.count > 1
       error 'SingleNodeProgress has more than one node'
       return
@@ -156,7 +154,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_upstream_message(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    info "on_upstream_message: event = #{event}"
+    info "on_upstream_message: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
     self.inform_status({type: :message, nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
   end
@@ -165,7 +163,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
     debug self.uid
-    info "on_devices_attached: event = #{event}"
+    info "on_devices_attached: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
     self.inform_status({type: :nodes_attached, nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
   end
@@ -174,7 +172,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
     debug self.uid
-    info "on_devices_detached: event = #{event}"
+    info "on_devices_detached: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
     self.inform_warn({type: :nodes_detached, nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
   end
@@ -182,7 +180,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   def on_notification(payload)
     return unless handle_event? payload
     id, req, responses, event, nodes = self.extract(payload)
-    info "on_notification: event = #{event}"
+    info "on_notification: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
     self.inform_status({type: :notification, nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
   end

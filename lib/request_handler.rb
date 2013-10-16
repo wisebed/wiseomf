@@ -2,13 +2,8 @@ require 'lrucache'
 require 'set'
 module RequestHandler
   attr_accessor :nodeUrns, :cache
-  @@uniqueRequestIdentifier = 0
   @cache
   @nodeUrns
-
-  def requestId
-    return @@uniqueRequestIdentifier += 1
-  end
 
   def handle_response?(info)
     return !self.cache.fetch(info[:requestId]).nil? || (info[:requestId].nil? && self.nodeUrns == info[:nodeUrns])
