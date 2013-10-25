@@ -1,6 +1,7 @@
 require 'omf_rc'
 require 'event_bus'
 require 'set'
+require 'base64'
 
 require_relative '../protobuf/iwsn-messages.pb'
 require_relative '../protobuf/internal-messages.pb'
@@ -22,11 +23,12 @@ module OmfRc::ResourceProxy::NodeGroupProxy
   # Configure and Request Methods (Upstream Events)
   def configure_image(payload)
     debug self.uid
-    info "configure_image: value = #{payload.value}"
+    binary = Base64.decode64(payload.value)
+    info "configure_image: value = #{binary}"
     id = payload.requestId
     fir = FlashImagesRequest.new
     fir.nodeUrns = self.nodeUrns
-    fir.image = payload.value
+    fir.image = binary
     req = Request.new
     req.requestId = id
     req.type = Request::Type::FLASH_IMAGES
@@ -145,7 +147,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
       error 'SingleNodeProgress has more than one node'
       return
     end
-    self.inform_status({type: :progress, requestId: id, nodeUrns: nodes, progress: event.progressInPercent})
+    self.inform_status({type: :progress, requestId: id, nodeUrns: nodes.to_a, progress: event.progressInPercent})
   end
 
 
@@ -156,7 +158,12 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     id, req, responses, event, nodes = self.extract(payload)
     info "on_upstream_message: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
-    self.inform_status({type: :message, nodeUrns: intersection, timestamp: event.timestamp, message: event.messageBytes})
+    info "Node Intersection is #{intersection.to_yaml}"
+    # FIXME send message bytes
+    hash = {type: :message, nodeUrns: intersection.to_a, timestamp: event.timestamp, payload: event.messageBytes}
+    info "status hash: #{hash}"
+
+    self.inform_status(hash)
   end
 
   def on_devices_attached(payload)
@@ -165,7 +172,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     debug self.uid
     info "on_devices_attached: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
-    self.inform_status({type: :nodes_attached, nodeUrns: intersection, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
+    self.inform_status({type: :nodes_attached, nodeUrns: intersection.to_a, timestamp: event.timestamp, message: 'Some nodes in this group where attached.'})
   end
 
   def on_devices_detached(payload)
@@ -174,7 +181,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     debug self.uid
     info "on_devices_detached: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
-    self.inform_warn({type: :nodes_detached, nodeUrns: intersection, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
+    self.inform_warn({type: :nodes_detached, nodeUrns: intersection.to_a, timestamp: event.timestamp, reason: 'Some nodes in this group where detached.'})
   end
 
   def on_notification(payload)
@@ -182,7 +189,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     id, req, responses, event, nodes = self.extract(payload)
     info "on_notification: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
-    self.inform_status({type: :notification, nodeUrns: intersection, timestamp: event.timestamp, message: event.message})
+    self.inform_status({type: :notification, nodeUrns: intersection.to_a, timestamp: event.timestamp, message: event.message})
   end
 
   # Hooks

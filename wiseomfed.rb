@@ -1,38 +1,42 @@
 require 'yaml'
-require_relative 'utils/uid_helper'
-
 require 'protocol_buffers'
+require 'base64'
+
+require_relative 'ec/wisebed_client'
 
 reservation = YAML.load_file('./ec/reservation_definition.yml')
+WisebedClient::ReservationManager.init(reservation, reservation[:nodeUrns])
 
-def_property('startTime', Time.now, 'The experiment start time')
+info 'Starting Setup!'
 
-def_property('reservation', reservation, 'Informations about a current reservation (to build the reservation id from)')
-def_property('reservation_id', Utils::UIDHelper.reservation_uid(reservation) , 'The reservation id')
-def_property('nodeUrns', reservation[:nodeUrns], 'An array of node urns which are part of this experiment')
+flash_image = File.read('./ec/uart_echo.jn5148.bin')
+WisebedClient::ReservationManager.allNodesGroup.default_callback = lambda { |msg|
+  info "Default Callback: #{msg.to_yaml}"
+}
 
 onEvent :ALL_NODES_UP do
-  group('AllNodes') {|g|
-    #warn "Direct nodeUrns response: #{g.resources.nodeUrns.inspect}"
-    #warn "Direct alive response: #{g.resources.alive.inspect}"
-    info "Sending alive request to AllNodes"
+  info 'ALL_NODES_UP'
 
-    g.resources.alive = 42
-    g.topic.on_message(:inform_status) { |msg|
-      warn "Event: #{msg.to_yaml}"
-    }
+
+  WisebedClient::ReservationManager.allNodesGroup.connected { |props|
+    warn "Got connected callback: #{props.to_yaml}"
+    if props.responses[0].statusCode == 1
+      info "Node is alive"
+      WisebedClient::ReservationManager.allNodesGroup.set_image(Base64.encode64(flash_image)) { |props|
+        info "Flashing...\n#{props.to_yaml}"
+        #if props.type.eql? 'response'
+        #  OmfEc.el.after(5) {
+        #    WisebedClient::ReservationManager.allNodesGroup.set_reset(1) {|resp|
+        #      info "Reset Response "
+        #    }
+        #
+        #
+        #  }
+        #end
+      }
+    else
+      warn "Node is not connected. Can't flash"
+    end
   }
 end
-
-defGroup('ReservationGroup', property.reservation_id.value)
-defGroup('AllNodes', Utils::UIDHelper.node_group_uid(reservation, reservation[:nodeUrns]))
-
-reservation[:nodeUrns].each {|urn|
- defGroup(urn, Utils::UIDHelper.node_group_uid(reservation, [urn]))
-}
-info "All Groups created!"
-# TODO groups contain only a single proxy for each node group
-#   - how to dynamically create groups with custom topic ids?
-#   - how to request property values beside of measurements?
-#   - how to interact with the testbed (event based)
 
