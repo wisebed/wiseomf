@@ -6,6 +6,8 @@ module WisebedClient
     @@uid_cache = LRUCache.new(ttl: 30.minutes)
 
 
+    # Create an unique message id
+    # NOTE: Message ids are guaranteed to be unique within 30 minutes.
     def self.messageUID
       uid = -1
       while true
@@ -18,8 +20,13 @@ module WisebedClient
 
   end
 
+  # The WiseGroup is the representation of an omf resource group
+  # which provides the ability to register callback for requests and configure messages.
+  # You should not create an instance of this group directly. This can cause unwanted side effects.
+  # The better way is to ask the ReservationManager (factory) for a group for a list of node urns.
   class WiseGroup
-      @@default_message_types = [:response, :inform, :configure]
+      # Message types to call callbacks for
+      @@default_message_types = [:response, :inform]
     attr_accessor :name, :uid, :group, :default_callback
     @callback_cache
     @name
@@ -78,6 +85,11 @@ module WisebedClient
 
   end
 
+  # The reservation manager handles the creation and storage of node groups and stores all relevant information
+  # for the current experiment.
+  # If you need to talk to a single node, call the ResverationManager.groupForNode(nodeUrn) method.
+  # If you want a custom subset of nodes, call the ReservationManager.groupForNodes(nodeUrnArray) method.
+  # For talking to all nodes, you can get the approprita group bei calling ReservationManager.allNodesGroup.
   class ReservationManager
     @@reservation
     @@nodeUrns
