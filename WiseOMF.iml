@@ -38,6 +38,7 @@
     <orderEntry type="library" scope="PROVIDED" name="ruby-protocol-buffers (v1.5.0, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="thread_safe (v0.1.3, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="tzinfo (v0.3.38, RVM: ruby-2.0.0-p247 [omf]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="wise_omf (v0.0.1, /Users/Tobi/Arbeit/ITM/WiseOMF/wiseomf-gem) [path][gem]" level="application" />
   </component>
 </module>
 

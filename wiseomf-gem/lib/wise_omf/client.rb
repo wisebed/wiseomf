@@ -1,5 +1,5 @@
 require 'lrucache'
-require_relative '../utils/uid_helper'
+require 'wise_omf/uid_helper'
 module WisebedClient
   class ExperimentHelper
     @@random = Random.new
@@ -118,7 +118,7 @@ module WisebedClient
     #
     # @param[Array, Set, #read] a list of nodes to get the group for.
     def self.groupForNodes(nodeUrns, name = nil)
-      groupId = Utils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
+      groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
       if @@nodeGroups[groupId].nil?
         @@reservationGroup.group.topic.create(:wisebed_node, {urns: nodeUrns}, nil) { |msg|
           # TODO: update groupID (WiseGroup)
@@ -135,7 +135,7 @@ module WisebedClient
 
     # Returns a group to work with when interacting with all nodes of the reservation
     def self.allNodesGroup
-      groupId = Utils::UIDHelper.node_group_uid(@@reservation, @@nodeUrns)
+      groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, @@nodeUrns)
       if @@nodeGroups[groupId].nil?
         @@nodeGroups[groupId] = WisebedClient::WiseGroup.new('AllNodes', groupId)
       end
@@ -146,7 +146,7 @@ module WisebedClient
     #
     # @param[String, #read] the node urn
     def self.groupForNode(nodeUrn)
-      groupId = Utils::UIDHelper.node_group_uid(@@reservation, [nodeUrn])
+      groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, [nodeUrn])
       if @@nodeGroups[groupId].nil?
         @@nodeGroups[groupId] = WisebedClient::WiseGroup.new(nodeUrn, groupId)
       end
@@ -155,7 +155,7 @@ module WisebedClient
 
     # Getter for the reservation id of the current reservation
     def self.reservationID
-      Utils::UIDHelper.reservation_uid(@@reservation)
+      WiseOMFUtils::UIDHelper.reservation_uid(@@reservation)
     end
 
 

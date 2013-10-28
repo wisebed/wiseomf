@@ -1,11 +1,7 @@
-require_relative '../protobuf/iwsn-messages.pb'
-require_relative '../protobuf/internal-messages.pb'
-require_relative '../protobuf/external-plugin-messages.pb'
-require_relative '../utils/uid_helper'
-
 require 'event_bus'
 require 'omf_rc'
 require 'set'
+require 'wise_omf/server'
 
 module OmfRc::ResourceProxy::WisebedReservation
   include OmfRc::ResourceProxyDSL
@@ -29,14 +25,14 @@ module OmfRc::ResourceProxy::WisebedReservation
     reservation.child_hash = {}
     # create the "all node group"
     nodeUrns = reservation.opts.nodeUrns
-    child_uid = Utils::UIDHelper::node_group_uid(reservation.reservation_event, nodeUrns)
+    child_uid = WiseOMFUtils::UIDHelper::node_group_uid(reservation.reservation_event, nodeUrns)
 
     proxy = reservation.create(:wisebed_node, {uid: child_uid, urns: nodeUrns})
     reservation.child_hash[child_uid] = proxy
     ## create the "single node groups"
     nodeUrns.each {|nodeUrn|
       set = Set.new([nodeUrn])
-      cuid = Utils::UIDHelper::node_group_uid(reservation.reservation_event, set)
+      cuid = WiseOMFUtils::UIDHelper::node_group_uid(reservation.reservation_event, set)
       p = reservation.create(:wisebed_node, {uid: cuid, urns: set})
       reservation.child_hash[cuid] = p
     }
@@ -59,7 +55,7 @@ module OmfRc::ResourceProxy::WisebedReservation
       return nil
     end
     # FIXME validate child node urns
-    child_uid = Utils::UIDHelper.node_group_uid(self.reservation_event, child_nodeUrns)
+    child_uid = WiseOMFUtils::UIDHelper.node_group_uid(self.reservation_event, child_nodeUrns)
     if self.child_hash.include? child_uid
       debug "The topic '#{child_uid}' already exists."
       inform('CREATION.FAILED'.to_sym, {reason: ' There exists an appropriate group topic for the provided set of nodeUrns.', uid: child_uid})

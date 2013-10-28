@@ -5,10 +5,9 @@ require 'yaml'
 require 'protocol_buffers'
 require 'base64'
 
-
 # requiring the helper classes for experimenting with the testbed.
-# the helper capsulates some omf calls and provides the ability to provide callbacks for requests and configure calls.
-require_relative 'ec/wisebed_client'
+# the helper capsulates some omf calls and provides the ability to provide callbacks for requests and configure calls. (gem: wise_omf)
+require 'wise_omf/client'
 
 
 # your testbed reservation with the urn prefixes and the reservation keys as well as the nodeUrns is stored in a yaml file.

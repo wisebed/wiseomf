@@ -2,10 +2,7 @@ require 'omf_rc'
 require 'event_bus'
 require 'set'
 require 'base64'
-
-require_relative '../protobuf/iwsn-messages.pb'
-require_relative '../protobuf/internal-messages.pb'
-require_relative '../protobuf/external-plugin-messages.pb'
+require 'wise_omf/server'
 require_relative '../resources/event_type'
 require_relative '../lib/request_handler'
 

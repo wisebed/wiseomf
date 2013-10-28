@@ -7,11 +7,10 @@ CONFIG = YAML.load_file './config.yml'
 
 require 'omf_rc'
 require 'protocol_buffers'
+require 'wise_omf'
 
 # Including protobuf message definitions
-require_relative "protobuf/external-plugin-messages.pb.rb"
-require_relative "protobuf/internal-messages.pb.rb"
-require_relative "protobuf/iwsn-messages.pb.rb"
+require 'wise_omf/protobuf'
 include De::Uniluebeck::Itm::Tr::Iwsn::Messages
 
 

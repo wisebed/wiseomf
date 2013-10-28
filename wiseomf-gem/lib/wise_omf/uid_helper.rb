@@ -2,12 +2,10 @@ require 'base64'
 require 'json'
 require 'protocol_buffers'
 
-require_relative '../protobuf/external-plugin-messages.pb'
-require_relative '../protobuf/internal-messages.pb'
-require_relative '../protobuf/iwsn-messages.pb'
+require 'wise_omf/protobuf'
 
 
-module Utils
+module WiseOMFUtils
   class UIDHelper
 
     def self.reservation_uid(reservation)

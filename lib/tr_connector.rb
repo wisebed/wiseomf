@@ -2,9 +2,7 @@ require 'socket'
 require 'event_bus'
 require 'set'
 require 'logger'
-require_relative '../protobuf/internal-messages.pb'
-require_relative '../protobuf/external-plugin-messages.pb'
-require_relative '../protobuf/iwsn-messages.pb'
+require 'wise_omf/server'
 require_relative '../resources/event_type'
 
 # the TRConnector handles the tcp socket connection to the testbed runtime
