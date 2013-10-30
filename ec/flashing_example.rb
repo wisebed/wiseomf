@@ -2,7 +2,6 @@
 #
 
 require 'yaml'
-require 'protocol_buffers'
 require 'base64'
 
 # requiring the helper classes for experimenting with the testbed.
@@ -35,7 +34,7 @@ onEvent :ALL_NODES_UP do
   # The callback receives a set of properties containing an array of responses (on for each node in the group)
   # Every response contains a statusCode which is 1 if the node is connected. Furthermore every response contains the appropriate nodeUrn.
   WisebedClient::ReservationManager.allNodesGroup.connected { |properties|
-    warn "Got connected callback: #{props.to_yaml}"
+    warn "Got connected callback: #{properties.to_yaml}"
 
     # Testing whether all nodes are connected or not:
     if properties.responses.all? { |response| response.statusCode == 1 }
@@ -51,10 +50,19 @@ onEvent :ALL_NODES_UP do
       # The callback is called every time a node in the group sends a progress message (statusCode = 0..100, type: progress)
       # Furthermore, if all nodes have completed the flashing progress a response is send (type: response), which contains the status of every node in the group.
       WisebedClient::ReservationManager.allNodesGroup.set_image(Base64.encode64(flash_image)) { |properties|
-        info "Flashing...\n#{properties.to_yaml}"
-
-        # TODO check for type and perform different operations
-        # TODO call the reset request.
+        if properties.type.to_sym.eql? :progress
+          # the message is a progress message of a single node in the group
+          info "Progress of #{properties.nodeUrns.first}: #{properties.progress}%"
+        elsif properties.type.to_sym.eql? :response
+          # the message is a response telling us, that the flashing task was completed (or failed)
+          # this message contains on response for every node in the group
+          info "Finished with response: #{properties.responses.to_yaml}"
+          WisebedClient::ReservationManager.allNodesGroup.delete_callback(properties.requestId)
+          WisebedClient::ReservationManager.allNodesGroup.reset {|properties| info "Resetting #{properties.to_yaml}"}
+        else
+          # This should not happen!
+          warn "Unknown Message Type!\n#{properties.to_yaml}"
+        end
       }
     else
       warn "A Node is not connected. Can't flash the entire group: #{properties.responses.to_yaml}"

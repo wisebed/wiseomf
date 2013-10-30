@@ -83,6 +83,10 @@ module WisebedClient
       end
     end
 
+    def delete_callback(requestId)
+      @callback_cache.delete(requestId)
+    end
+
   end
 
   # The reservation manager handles the creation and storage of node groups and stores all relevant information

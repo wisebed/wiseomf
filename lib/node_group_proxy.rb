@@ -65,17 +65,16 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     return nil
   end
 
-  def configure_reset(payload)
+  def configure_reset(requestId)
     debug self.uid
     info "configure_reset: value = #{payload.value}"
-    # TODO handle value as flag?
     rr = ResetNodesRequest.new
     rr.nodeUrns = self.nodeUrns
     req = Request.new
-    req.requestId = payload.requestId
+    req.requestId = requestId
     req.type = Request::Type::RESET_NODES
     req.resetNodesRequest = rr
-    self.store(payload.requestId, req)
+    self.store(requestId, req)
     EventBus.publish(Events::DOWN_RESET, request: req)
     return nil
   end
