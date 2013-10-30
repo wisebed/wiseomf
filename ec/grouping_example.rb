@@ -14,7 +14,7 @@ require 'wise_omf/client'
 reservation = YAML.load_file('./ec/reservation_definition.yml')
 
 # Initializing the reservation manager (it's a factory!)
-WisebedClient::ReservationManager.init(reservation, reservation[:nodeUrns])
+WiseOMF::Client::ReservationManager.init(reservation, reservation[:nodeUrns])
 
 info 'Starting Setup!'
 
@@ -22,13 +22,19 @@ info 'Starting Setup!'
 # Register a default callback for the group which contains all nodes in your reservation (the "allNodesGroup").
 # The default callback is called for every message comming from the omf_rc for wich there isn't another callback set.
 # The received omf message is offered to the callback.
-WisebedClient::ReservationManager.allNodesGroup.default_callback = lambda { |msg|
+WiseOMF::Client::ReservationManager.allNodesGroup.default_callback = lambda { |msg|
   info "Default Callback: #{msg.to_yaml}"
 }
 
 # The initial setup is finished and all nodes are ready for the experiment:
 onEvent :ALL_NODES_UP do
   info 'ALL_NODES_UP'
-  # TODO write the example for creating subgroups
+  WiseOMF::Client::ReservationManager.createGroupForNodes(%w(urn:wisebed:uzl1:0x0002 urn:wisebed:uzl1:0x0003)) { |group|
+    info "Creation callback in example. #{group}"
+    group.connected { |properties|
+      info "Connected Callback from new group: #{properties.to_yaml}"
+      # TODO write the example for creating subgroups
+    }
+  }
 end
 
