@@ -55,6 +55,7 @@ module WiseOMF
               end
             end
           }
+          #block.call(self) unless block.nil?
           yield self unless block.nil?
         }
           @group.add_resource(uid)
@@ -66,6 +67,10 @@ module WiseOMF
         mid = WiseOMF::Client::ExperimentHelper.messageUID
         unless block.nil?
           @callback_cache.store(mid, block)
+        end
+        warn "Starting configure of #{property}: #{block}"
+        if property.to_sym.eql?'topic'.to_sym
+          raise "WAAAH"
         end
         @group.topic.configure({property => mid})
       end
@@ -124,16 +129,11 @@ module WiseOMF
       def self.createGroupForNodes(nodeUrns, name = nil, &block)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         if @@nodeGroups[groupId].nil?
-          @@reservationGroup.group.topic.create(:wisebed_node, {urns: nodeUrns, uid: groupId}, {}) { |msg|
-            info "Creation Callback: #{msg.to_yaml}"
+          @@reservationGroup.group.topic.create(:wisebed_node) { |msg|
             if name.nil?
-              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId) {|g|
-                block.call(@@nodeGroups[groupId]) unless block.nil?
-              }
+              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId, &block)
             else
-              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(name, groupId) {|g|
-                block.call(@@nodeGroups[groupId]) unless block.nil?
-              }
+              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(name, groupId, &block)
             end
           }
         end

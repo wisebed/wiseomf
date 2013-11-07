@@ -41,8 +41,8 @@ module OmfRc::ResourceProxy::WisebedReservation
   end
 
 
-  # inherited methods
-  #def create(type, opts = {}, creation_opts = {}, &creation_callback)
+  ##inherited methods
+  def create(type, opts = {}, creation_opts = {}, &creation_callback)
   #  child_nodeUrns = opts[:urns]
   #  if child_nodeUrns.nil?
   #    error "No nodeUrns provided.."
@@ -58,10 +58,10 @@ module OmfRc::ResourceProxy::WisebedReservation
   #  end
   #  info "Going to create group for #{child_nodeUrns}."
   #  opts[:uid] = child_uid if opts[:uid].nil?
-  #  proxy = super(type, opts, creation_opts, &creation_callback)
+    proxy = super(type, opts, creation_opts, &creation_callback)
   #  self.child_hash[child_uid] = proxy
-  #  return proxy
-  #end
+    return proxy
+  end
 
 end
 

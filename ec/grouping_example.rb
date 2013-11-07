@@ -30,8 +30,8 @@ WiseOMF::Client::ReservationManager.allNodesGroup.default_callback = lambda { |m
 onEvent :ALL_NODES_UP do
   info 'ALL_NODES_UP'
   WiseOMF::Client::ReservationManager.createGroupForNodes(%w(urn:wisebed:uzl1:0x0002 urn:wisebed:uzl1:0x0003)) { |group|
-    info "Creation callback in example. #{group}"
-    group.connected { |properties|
+    info "Creation callback in example. #{group.group.topic.address}"
+    WiseOMF::Client::ReservationManager.groupForNodes(%w(urn:wisebed:uzl1:0x0002 urn:wisebed:uzl1:0x0003)).connected { |properties|
       info "Connected Callback from new group: #{properties.to_yaml}"
       # TODO write the example for creating subgroups
     }
