@@ -13,7 +13,7 @@ module WiseOMFUtils
     end
 
     def self.node_group_uid(reservation, nodeUrns)
-      return to_uid([sort_secret_reservation_keys(reservation), sort_node_urns(nodeUrns)])
+      return to_uid(sort_node_urns(nodeUrns)) #to_uid([sort_secret_reservation_keys(reservation), sort_node_urns(nodeUrns)])
     end
 
 
@@ -40,7 +40,7 @@ module WiseOMFUtils
     end
 
     def self.to_uid(object)
-      return Base64.encode64(JSON.generate(object)).gsub("\n", "-")
+      return JSON.generate(object).gsub("\n", "-") #Base64.encode64(JSON.generate(object)).gsub("\n", "-")
     end
 
     def self.from_uid(uid)

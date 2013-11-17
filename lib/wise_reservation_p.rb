@@ -2,6 +2,7 @@ require 'event_bus'
 require 'omf_rc'
 require 'set'
 require 'wise_omf/server'
+require 'yaml'
 
 module OmfRc::ResourceProxy::WisebedReservation
   include OmfRc::ResourceProxyDSL
@@ -43,6 +44,9 @@ module OmfRc::ResourceProxy::WisebedReservation
 
   ##inherited methods
   def create(type, opts = {}, creation_opts = {}, &creation_callback)
+    info "opts = #{opts.to_yaml}"
+    info "creation_opts = #{creation_opts.to_yaml}"
+    opts.delete(:hrn)
   #  child_nodeUrns = opts[:urns]
   #  if child_nodeUrns.nil?
   #    error "No nodeUrns provided.."

@@ -1,5 +1,6 @@
 require 'lrucache'
 require 'wise_omf/uid_helper'
+require 'yaml'
 module WiseOMF
   module Client
     class ExperimentHelper
@@ -39,7 +40,8 @@ module WiseOMF
         @callback_cache = LRUCache.new(ttl: 30.minutes)
         @name = name
         @uid = uid
-        @group = OmfEc::Group.new(name) { |g|
+        @group = OmfEc::Group.new(name, {unique: false}) { |g|
+          info "Created Group #{name}: #{g.to_yaml}"
           g.topic.on_message(:inform_status) { |msg|
             rid = msg.content.properties.requestId
             if rid.nil? && @@default_message_types.include?(msg.content.type)
@@ -55,11 +57,11 @@ module WiseOMF
               end
             end
           }
-          #block.call(self) unless block.nil?
-          yield self unless block.nil?
+          #yield self unless block.nil?
+          block.call(self) unless block.nil?
         }
-          @group.add_resource(uid)
-          OmfEc.experiment.add_group(@group)
+        OmfEc.experiment.add_group(@group)
+        @group.add_resource(uid)
         warn "Finished init"
       end
 
@@ -69,9 +71,7 @@ module WiseOMF
           @callback_cache.store(mid, block)
         end
         warn "Starting configure of #{property}: #{block}"
-        if property.to_sym.eql?'topic'.to_sym
-          raise "WAAAH"
-        end
+        fail "Can't request topic here" if property.to_sym.eql? 'topic'.to_sym
         @group.topic.configure({property => mid})
       end
 
@@ -126,10 +126,15 @@ module WiseOMF
 
       end
 
+      def self.reservationGroup
+        @@reservationGroup
+      end
+
       def self.createGroupForNodes(nodeUrns, name = nil, &block)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         if @@nodeGroups[groupId].nil?
-          @@reservationGroup.group.topic.create(:wisebed_node) { |msg|
+          @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns}) { |msg|
+            warn "callback on reservation topic: #{msg.to_yaml}"
             if name.nil?
               @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId, &block)
             else
