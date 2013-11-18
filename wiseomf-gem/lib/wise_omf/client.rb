@@ -36,13 +36,34 @@ module WiseOMF
       @group
       @default_callback
 
-      def initialize(name, uid, &block)
+      def initialize(name, uid, intOps = {})
         @callback_cache = LRUCache.new(ttl: 30.minutes)
         @name = name
         @uid = uid
-        @group = OmfEc::Group.new(name, {unique: false}) { |g|
-          info "Created Group #{name}: #{g.to_yaml}"
-          g.topic.on_message(:inform_status) { |msg|
+        if intOps[:id]
+          group = OmfEc::Group.new(intOps[:id], {unique: false})
+        else
+          group = OmfEc::Group.new(name)
+        end
+        OmfEc.experiment.add_group(group)
+        group.add_resource(uid)
+        @group = group
+
+        #@group = OmfEc::Group.new(uid, {unique: false}) { |g|
+        #  info "Created Group #{name}: #{g.to_yaml}"
+        #
+        #  #yield self unless block.nil?
+        #
+        #}
+        #OmfEc.experiment.add_group(@group)
+        #@group.add_resource(name)
+        warn "Finished init"
+      end
+
+      def init_callback
+        if @group.topic
+          info "Setting message callback for #{self.name}"
+          @group.topic.on_message(:inform_status) { |msg|
             rid = msg.content.properties.requestId
             if rid.nil? && @@default_message_types.include?(msg.content.type)
               self.default_callback.call(msg) unless self.default_callback.nil?
@@ -57,12 +78,12 @@ module WiseOMF
               end
             end
           }
-          #yield self unless block.nil?
-          block.call(self) unless block.nil?
-        }
-        OmfEc.experiment.add_group(@group)
-        @group.add_resource(uid)
-        warn "Finished init"
+        else
+          info "Delaying callback creation for 0.5 seconds"
+          sleep 0.5
+          init_callback
+        end
+
       end
 
       def request(property, &block)
@@ -70,7 +91,7 @@ module WiseOMF
         unless block.nil?
           @callback_cache.store(mid, block)
         end
-        warn "Starting configure of #{property}: #{block}"
+        warn "Starting configure of #{property} (id = #{mid}): #{block}"
         fail "Can't request topic here" if property.to_sym.eql? 'topic'.to_sym
         @group.topic.configure({property => mid})
       end
@@ -116,6 +137,7 @@ module WiseOMF
         @@reservation = reservation
         @@nodeUrns = nodeUrns
         @@reservationGroup = WiseOMF::Client::WiseGroup.new('ReservationGroup', self.reservationID)
+        @@reservationGroup.init_callback
         # Creating the all nodes group:
         self.allNodesGroup
 
@@ -134,12 +156,41 @@ module WiseOMF
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         if @@nodeGroups[groupId].nil?
           @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns}) { |msg|
+
             warn "callback on reservation topic: #{msg.to_yaml}"
+
             if name.nil?
-              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId, &block)
+              group = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId)
             else
-              @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(name, groupId, &block)
+              group = WiseOMF::Client::WiseGroup.new(name, groupId)
             end
+
+            @@nodeGroups[groupId] = group
+            group.init_callback
+
+            g = group.group
+            g.members.each { |key, value|
+              OmfEc.subscribe_and_monitor(key) { |res|
+                info "Configure '#{key}' to join '#{g.name}'"
+                g.synchronize {
+                  g.members[key] = res.address
+                }
+                info "Starting configure"
+                res.configure(membership: g.address) { |msg|
+                  info "Callback: #{msg.to_yaml}"
+                }
+                res.on_inform(:inform_status) { |msg|
+                  info "Resource Status: #{msg.to_yaml}"
+                }
+                res.on_subscribed {
+                  info "Subscribed. Waiting for intialization finish"
+                  g.associate_resource_topic(groupId, res)
+                  sleep 5
+                  block.call(group) if block
+                }
+              }
+            }
+
           }
         end
       end
@@ -157,6 +208,7 @@ module WiseOMF
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, @@nodeUrns)
         if @@nodeGroups[groupId].nil?
           @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new('AllNodes', groupId)
+          @@nodeGroups[groupId].init_callback
         end
         @@nodeGroups[groupId]
       end
@@ -168,6 +220,7 @@ module WiseOMF
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, [nodeUrn])
         if @@nodeGroups[groupId].nil?
           @@nodeGroups[groupId] = WiseOMF::Client::WiseGroup.new(nodeUrn, groupId)
+          @@nodeGroups[groupId].init_callback
         end
         @@nodeGroups[groupId]
       end

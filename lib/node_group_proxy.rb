@@ -52,7 +52,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
 
   def configure_connected(requestId)
     debug self.uid
-    info "request_connected"
+    info "request_connected (id = #{requestId})"
     id = requestId
     anc = AreNodesConnectedRequest.new
     anc.nodeUrns = self.nodeUrns
