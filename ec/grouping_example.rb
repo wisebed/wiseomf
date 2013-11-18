@@ -33,8 +33,6 @@ WiseOMF::Client::ReservationManager.allNodesGroup.default_callback = lambda { |m
 
 # The initial setup is finished and all nodes are ready for the experiment:
 onEvent :ALL_NODES_UP do
-
-  OmfEc.experiment.add_event('SPECIAL_EVENT', lambda {|event| info "Default Event: #{event.to_yaml}" })
   info 'ALL_NODES_UP'
   WiseOMF::Client::ReservationManager.createGroupForNodes(%w(urn:wisebed:uzl1:0x0002 urn:wisebed:uzl1:0x0003)) { |group|
     group.connected { |properties|

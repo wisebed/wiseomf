@@ -61,28 +61,27 @@ module WiseOMF
       end
 
       def init_callback
-        if @group.topic
-          info "Setting message callback for #{self.name}"
-          @group.topic.on_message(:inform_status) { |msg|
-            rid = msg.content.properties.requestId
-            if rid.nil? && @@default_message_types.include?(msg.content.type)
-              self.default_callback.call(msg) unless self.default_callback.nil?
-            else
-              callback = @callback_cache.fetch(rid)
-              unless callback.nil?
-                callback.call(msg.content.properties)
-              else
-                if @@default_message_types.include? msg.content.type
-                  self.default_callback.call(msg) unless self.default_callback.nil?
-                end
-              end
-            end
-          }
-        else
+
+        while @group.topic.nil?
           info "Delaying callback creation for 0.5 seconds"
           sleep 0.5
-          init_callback
         end
+        info "Setting message callback for #{self.name}"
+        @group.topic.on_message(:inform_status) { |msg|
+          rid = msg.content.properties.requestId
+          if rid.nil? && @@default_message_types.include?(msg.content.type)
+            self.default_callback.call(msg) unless self.default_callback.nil?
+          else
+            callback = @callback_cache.fetch(rid)
+            unless callback.nil?
+              callback.call(msg.content.properties)
+            else
+              if @@default_message_types.include? msg.content.type
+                self.default_callback.call(msg) unless self.default_callback.nil?
+              end
+            end
+          end
+        }
 
       end
 
@@ -91,7 +90,6 @@ module WiseOMF
         unless block.nil?
           @callback_cache.store(mid, block)
         end
-        warn "Starting configure of #{property} (id = #{mid}): #{block}"
         fail "Can't request topic here" if property.to_sym.eql? 'topic'.to_sym
         @group.topic.configure({property => mid})
       end
@@ -155,43 +153,24 @@ module WiseOMF
       def self.createGroupForNodes(nodeUrns, name = nil, &block)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         if @@nodeGroups[groupId].nil?
-          @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns}) { |msg|
-
-            warn "callback on reservation topic: #{msg.to_yaml}"
-
-            if name.nil?
-              group = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId)
-            else
-              group = WiseOMF::Client::WiseGroup.new(name, groupId)
+          if name.nil?
+            group = WiseOMF::Client::WiseGroup.new(nodeUrns.to_s, groupId)
+          else
+            group = WiseOMF::Client::WiseGroup.new(name, groupId)
+          end
+          @@nodeGroups[groupId] = group
+          group.init_callback
+          group.group.topic.on_message(:wait_for_membership) { |msg|
+            if msg.properties.membership && msg.properties.membership.include?(group.group.address)
+              info "New group setup finished"
+              group.group.topic.on_message(:wait_for_membership) {}
+              #group.init_callback
+              block.call(group) if block
             end
 
-            @@nodeGroups[groupId] = group
-            group.init_callback
-
-            g = group.group
-            g.members.each { |key, value|
-              OmfEc.subscribe_and_monitor(key) { |res|
-                info "Configure '#{key}' to join '#{g.name}'"
-                g.synchronize {
-                  g.members[key] = res.address
-                }
-                info "Starting configure"
-                res.configure(membership: g.address) { |msg|
-                  info "Callback: #{msg.to_yaml}"
-                }
-                res.on_inform(:inform_status) { |msg|
-                  info "Resource Status: #{msg.to_yaml}"
-                }
-                res.on_subscribed {
-                  info "Subscribed. Waiting for intialization finish"
-                  g.associate_resource_topic(groupId, res)
-                  sleep 5
-                  block.call(group) if block
-                }
-              }
-            }
-
           }
+          @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns, membership: group.group.address})
+
         end
       end
 

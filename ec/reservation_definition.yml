@@ -1,7 +1,7 @@
 ---
 :secretReservationKeys:
 - :nodeUrnPrefix: "urn:wisebed:uzl1:"
-  :key: "717DFDC67160F6FA2849C768C000F023"
+  :key: "E7FAC99ECA0203AC78A61BCB16306901"
 :nodeUrns:
 - "urn:wisebed:uzl1:0x0002"
 - "urn:wisebed:uzl1:0x0003"
