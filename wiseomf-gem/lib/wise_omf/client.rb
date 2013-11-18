@@ -36,15 +36,11 @@ module WiseOMF
       @group
       @default_callback
 
-      def initialize(name, uid, intOps = {})
+      def initialize(name, uid)
         @callback_cache = LRUCache.new(ttl: 30.minutes)
         @name = name
         @uid = uid
-        if intOps[:id]
-          group = OmfEc::Group.new(intOps[:id], {unique: false})
-        else
-          group = OmfEc::Group.new(name)
-        end
+        group = OmfEc::Group.new(name)
         OmfEc.experiment.add_group(group)
         group.add_resource(uid)
         @group = group

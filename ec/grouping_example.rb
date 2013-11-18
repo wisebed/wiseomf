@@ -18,8 +18,6 @@ reservation = YAML.load_file('./ec/reservation_definition.yml')
 # Initializing the reservation manager (it's a factory!)
 WiseOMF::Client::ReservationManager.init(reservation, reservation[:nodeUrns])
 
-info 'Starting Setup!'
-
 
 # Register a default callback for the group which contains all nodes in your reservation (the "allNodesGroup").
 # The default callback is called for every message comming from the omf_rc for wich there isn't another callback set.
