@@ -35,6 +35,7 @@ onEvent :ALL_NODES_UP do
   WiseOMF::Client::ReservationManager.createGroupForNodes(%w(urn:wisebed:uzl1:0x0002 urn:wisebed:uzl1:0x0003)) { |group|
     group.connected { |properties|
       info "Connected Callback from new group: #{properties.to_yaml}"
+      WiseOMF::Client::ReservationManager.done
       OmfEc::Experiment.done
     }
   }

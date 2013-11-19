@@ -248,7 +248,7 @@ module WiseOMF
 
       # Finalizes all node groups and the reservation group.
       # Call this method at the end of your experiment just before calling OmfEc::Experiment.done
-      def self.done!
+      def self.done
         # TODO unsubscribe topics, clear the RM
       end
 

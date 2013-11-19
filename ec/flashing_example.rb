@@ -59,6 +59,8 @@ onEvent :ALL_NODES_UP do
           info "Finished with response: #{properties.responses.to_yaml}"
           WiseOMF::Client::ReservationManager.allNodesGroup.delete_callback(properties.requestId)
           WiseOMF::Client::ReservationManager.allNodesGroup.reset {|properties| info "Resetting #{properties.to_yaml}"}
+          WiseOMF::Client::ReservationManager.done
+          OmfEc::Experiment.done
         else
           # This should not happen!
           warn "Unknown Message Type!\n#{properties.to_yaml}"
