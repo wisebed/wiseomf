@@ -3,6 +3,8 @@ require 'wise_omf/uid_helper'
 require 'yaml'
 module WiseOMF
   module Client
+
+    # The ExperimentHelper offers helper methods for the experiment.
     class ExperimentHelper
       @@random = Random.new
       @@uid_cache = LRUCache.new(ttl: 30.minutes)
@@ -10,6 +12,9 @@ module WiseOMF
 
       # Create an unique message id
       # NOTE: Message ids are guaranteed to be unique within 30 minutes.
+      #
+      # @return [Integer] an integer which can be used as messageUID.
+      #   This integer is guaranteed to be unique within 30 minutes.
       def self.messageUID
         uid = -1
         while true
@@ -36,6 +41,17 @@ module WiseOMF
       @group
       @default_callback
 
+
+      # Creates a new WiseGroup which handles an OmfEc::Group for the given name And connects the resource with the given uid.
+      # Speaking in OMF, the resource represented by the given uid becomes a member of the newly created Group.
+      # The WiseGroup encapsulates the OMF group and handles the proper registration of callbacks for configure and request messages.
+      #
+      # However, you are free to use the OmfEc::Group directly, but it's highly recommended to use a WiseGroup as helper.
+      #
+      # @param name [String] the name for the OmfEc::Group.
+      # @param uid [String] the uid of the resource represented by this group.
+      #
+      # @see OmfEc::Group
       def initialize(name, uid)
         @callback_cache = LRUCache.new(ttl: 30.minutes)
         @name = name
@@ -44,25 +60,18 @@ module WiseOMF
         OmfEc.experiment.add_group(group)
         group.add_resource(uid)
         @group = group
-
-        #@group = OmfEc::Group.new(uid, {unique: false}) { |g|
-        #  info "Created Group #{name}: #{g.to_yaml}"
-        #
-        #  #yield self unless block.nil?
-        #
-        #}
-        #OmfEc.experiment.add_group(@group)
-        #@group.add_resource(name)
-        warn "Finished init"
+        info "Finished intialization of WiseGroup (#{name})"
       end
 
+      # This method initializes the callback handler on the group topic.
+      # The topic might be nil direct after the intialization.
+      # Due to this reason, this method is waiting for the topic in a blocking manner.
       def init_callback
-
         while @group.topic.nil?
-          info "Delaying callback creation for 0.5 seconds"
+          debug "Delaying callback creation for 0.5 seconds"
           sleep 0.5
         end
-        info "Setting message callback for #{self.name}"
+        info "Setting message callback for WiseGroup (#{self.name})"
         @group.topic.on_message(:inform_status) { |msg|
           rid = msg.content.properties.requestId
           if rid.nil? && @@default_message_types.include?(msg.content.type)
@@ -81,6 +90,10 @@ module WiseOMF
 
       end
 
+      # Send a request message for the given property and callback
+      #
+      # @param property [String] the property to request
+      # @param &block the callback to be called for responses to this request
       def request(property, &block)
         mid = WiseOMF::Client::ExperimentHelper.messageUID
         unless block.nil?
@@ -90,6 +103,10 @@ module WiseOMF
         @group.topic.configure({property => mid})
       end
 
+      # Send a configure message for the given property and callback
+      #
+      # @param property [String] the property to configure
+      # @param &block the callback to be called for responses to this configuration attempt
       def configure(property, value, &block)
         mid = WiseOMF::Client::ExperimentHelper.messageUID
         unless block.nil?
@@ -98,6 +115,11 @@ module WiseOMF
         @group.topic.configure({property => {requestId: mid, value: value}})
       end
 
+      # This method translates calls to configure_xxx and request_xxx into proper FRCP messages (like in the OMF)
+      #
+      # @param name [String] the name of the method
+      # @param *args [Array] an array of arguments (empty for request_xxx, containing one argument for configure_xxx)
+      # @param &block a block which should be set as callback for the request/ configure message
       def method_missing(name, *args, &block)
         if name =~ /set_(.+)/
           configure($1, args[0], &block)
@@ -106,6 +128,10 @@ module WiseOMF
         end
       end
 
+      # Method for deleting a callback from the callback cache.
+      # After deleting the callback, it will not be called for messages arriving with the given requestId
+      #
+      # @param requestId [Integer] the requestId to delete the callback for
       def delete_callback(requestId)
         @callback_cache.delete(requestId)
       end
@@ -113,7 +139,7 @@ module WiseOMF
     end
 
     # The reservation manager handles the creation and storage of node groups and stores all relevant information
-    # for the current experiment.
+    # for the current experiment. The manager is designed as factory, so that it only exists once in the experiment.
     # If you need to talk to a single node, call the ResverationManager.groupForNode(nodeUrn) method.
     # If you want a custom subset of nodes, call the ReservationManager.groupForNodes(nodeUrnArray) method.
     # For talking to all nodes, you can get the approprita group bei calling ReservationManager.allNodesGroup.
@@ -123,9 +149,19 @@ module WiseOMF
       @@nodeGroups
       @@reservationGroup
 
-      # Initializes the reservation manager class and creates all needed wise groups
+      # Initializes the reservation manager class and creates the following WiseGroups:
+      #   - The allNodesGroup (containing all nodes of this reservation)
+      #   - One node group for each single node
+      #   - One group for the reservation itself
       #
-      # TODO explain parameters here
+      # @param reservation [Hash] a hash explaining by the following YAML example:
+      #     ---
+      #     :secretReservationKeys:
+      #       - :nodeUrnPrefix: "urn:wisebed:uzl1:"
+      #         :key: "7601BE4781736B57BC6185D1AAF33A9F"
+      #       - :nodeUrnPrefix: "..."
+      #         :key: "..."
+      # @param nodeUrns [Set, Array] a set of node urns beeing part of this reservation.
       def self.init(reservation, nodeUrns)
         @@nodeGroups = {}
         @@reservation = reservation
@@ -172,13 +208,16 @@ module WiseOMF
 
       # Returns a group to use when interacting with an arbitrary subset of the all nodes set
       #
-      # @param[Array, Set, #read] a list of nodes to get the group for.
+      # @param nodeUrns [Array, Set, #read] a list of nodes to get the group for.
+      # @return [WiseOMF::Client::WiseGroup] the WiseGroup for the node urns if one was found, nil otherwise
       def self.groupForNodes(nodeUrns)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         @@nodeGroups[groupId]
       end
 
       # Returns a group to work with when interacting with all nodes of the reservation
+      #
+      # @return [WiseOMF::Client::WiseGroup] the group containing the resource representing all nodes in the reservation
       def self.allNodesGroup
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, @@nodeUrns)
         if @@nodeGroups[groupId].nil?
@@ -191,6 +230,7 @@ module WiseOMF
       # Returns a WiseGroup to talk to. This group should be used for interacting with single nodes.
       #
       # @param[String, #read] the node urn
+      # @return[WiseOMF::Client::WiseGroup] the group for a single resource
       def self.groupForNode(nodeUrn)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, [nodeUrn])
         if @@nodeGroups[groupId].nil?
@@ -201,8 +241,15 @@ module WiseOMF
       end
 
       # Getter for the reservation id of the current reservation
+      # @return[String] the reservation id for this reservation
       def self.reservationID
         WiseOMFUtils::UIDHelper.reservation_uid(@@reservation)
+      end
+
+      # Finalizes all node groups and the reservation group.
+      # Call this method at the end of your experiment just before calling OmfEc::Experiment.done
+      def self.done!
+        # TODO unsubscribe topics, clear the RM
       end
 
 
