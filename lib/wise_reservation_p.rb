@@ -16,8 +16,8 @@ module OmfRc::ResourceProxy::WisebedReservation
 
 
   property :start_time, access: :init_only
-  property :end_time,   access: :init_only
-  property :nodeUrns,   access: :init_only
+  property :end_time, access: :init_only
+  property :nodeUrns, access: :init_only
 
   hook :before_ready do |reservation|
     debug 'before_ready'
@@ -28,7 +28,7 @@ module OmfRc::ResourceProxy::WisebedReservation
 
     reservation.create(:wisebed_node, {uid: child_uid, urns: nodeUrns})
     ## create the "single node groups"
-    nodeUrns.each {|nodeUrn|
+    nodeUrns.each { |nodeUrn|
       set = Set.new([nodeUrn])
       cuid = WiseOMFUtils::UIDHelper::node_group_uid(reservation.reservation_event, set)
       reservation.create(:wisebed_node, {uid: cuid, urns: set})
@@ -47,24 +47,16 @@ module OmfRc::ResourceProxy::WisebedReservation
     info "opts = #{opts.to_yaml}"
     info "creation_opts = #{creation_opts.to_yaml}"
     opts.delete(:hrn)
-  #  child_nodeUrns = opts[:urns]
-  #  if child_nodeUrns.nil?
-  #    error "No nodeUrns provided.."
-  #    inform_creation_failed('Please provide a group of node urns to create a group topic for.')
-  #    return nil
-  #  end
-  #  # FIXME validate child node urns
-  #  child_uid = WiseOMFUtils::UIDHelper.node_group_uid(self.reservation_event, child_nodeUrns)
-  #  if self.child_hash.include? child_uid
-  #    debug "The topic '#{child_uid}' already exists."
-  #    #inform('CREATION.FAILED'.to_sym, {reason: ' There exists an appropriate group topic for the provided set of nodeUrns.', uid: child_uid})
-  #    return self.child_hash[child_uid]
-  #  end
-  #  info "Going to create group for #{child_nodeUrns}."
-  #  opts[:uid] = child_uid if opts[:uid].nil?
-    proxy = super(type, opts, creation_opts, &creation_callback)
-  #  self.child_hash[child_uid] = proxy
-    return proxy
+    child_nodeUrns = opts[:urns]
+    if child_nodeUrns.all? { |v| self.opts.nodeUrns.include?(v) }
+      debug "Going to create group for #{child_nodeUrns.to_yaml}."
+      opts[:uid] = child_uid unless opts[:uid]
+      proxy = super(type, opts, creation_opts, &creation_callback)
+      return proxy
+    else
+      warn "No permission to create group for #{child_nodeUrns.to_yaml}"
+      return nil
+    end
   end
 
 end

@@ -1,6 +1,7 @@
 require 'lrucache'
 require 'wise_omf/uid_helper'
 require 'yaml'
+require 'omf_common'
 module WiseOMF
   module Client
 
@@ -65,14 +66,19 @@ module WiseOMF
 
       # This method initializes the callback handler on the group topic.
       # The topic might be nil direct after the intialization.
-      # Due to this reason, this method is waiting for the topic in a blocking manner.
-      def init_callback
-        while @group.topic.nil?
-          debug "Delaying callback creation for 0.5 seconds"
-          sleep 0.5
+      #
+      # @param block a block that should be called after initializing the topic callback
+      def init_callback(&block)
+        if @group.topic.nil?
+          info "Delaying callback creation for 1 seconds"
+          OmfCommon.el.after(1) {
+            info "Firing"
+            init_callback(&block)
+          }
+          return
         end
         info "Setting message callback for WiseGroup (#{self.name})"
-        @group.topic.on_message(:inform_status) { |msg|
+        @group.topic.on_message(:wise_group_callback_handler) { |msg|
           rid = msg.content.properties.requestId
           if rid.nil? && @@default_message_types.include?(msg.content.type)
             self.default_callback.call(msg) unless self.default_callback.nil?
@@ -87,6 +93,8 @@ module WiseOMF
             end
           end
         }
+        info "Callback: #{block}"
+        block.call(self) if block
 
       end
 
@@ -134,6 +142,11 @@ module WiseOMF
       # @param requestId [Integer] the requestId to delete the callback for
       def delete_callback(requestId)
         @callback_cache.delete(requestId)
+      end
+
+      # Terminates this group (unsubscribes topic...)
+      def done
+        self.group.topic.unsubscribe(:wise_group_callback_handler)
       end
 
     end
@@ -191,17 +204,21 @@ module WiseOMF
             group = WiseOMF::Client::WiseGroup.new(name, groupId)
           end
           @@nodeGroups[groupId] = group
-          group.init_callback
-          group.group.topic.on_message(:wait_for_membership) { |msg|
-            if msg.properties.membership && msg.properties.membership.include?(group.group.address)
-              info "New group setup finished"
-              group.group.topic.on_message(:wait_for_membership) {}
-              #group.init_callback
-              block.call(group) if block
-            end
+          info 'Creating new group'
+          group.init_callback {
+            info 'Topic initialized'
+            group.group.topic.on_message(:wait_for_membership) { |msg|
+              info "Wait for Membership: #{msg.to_yaml}"
+              if msg.properties.membership && msg.properties.membership.include?(group.group.address)
+                info 'New group setup finished'
+                group.group.topic.unsubscribe(:wait_for_membership)
+                block.call(group) if block
+              end
 
+            }
+            @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns, membership: group.group.address})
           }
-          @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns, membership: group.group.address})
+
 
         end
       end
@@ -249,7 +266,9 @@ module WiseOMF
       # Finalizes all node groups and the reservation group.
       # Call this method at the end of your experiment just before calling OmfEc::Experiment.done
       def self.done
-        # TODO unsubscribe topics, clear the RM
+        info 'Cleaning Reservation Resources'
+        @@nodeGroups.each_value { |group| group.done }
+        @@reservationGroup.done
       end
 
 

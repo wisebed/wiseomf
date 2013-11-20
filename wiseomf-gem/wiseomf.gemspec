@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'wise_omf'
-  s.version     = '0.9'
-  s.date        = '2013-11-19'
+  s.version     = '0.9.1'
+  s.date        = '2013-11-20'
   s.summary     = 'WiseOMF Utility Gem'
   s.description = 'This gem provides helpers for working with the testbed runtime via the OMF (Orbit Measurement Framework)'
   s.authors     = ['Tobias Mende']

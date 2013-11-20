@@ -1,7 +1,7 @@
 PATH
   remote: ./wiseomf-gem
   specs:
-    wise_omf (0.0.1)
+    wise_omf (0.9)
 
 GEM
   remote: https://rubygems.org/
