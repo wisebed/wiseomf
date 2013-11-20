@@ -17,9 +17,6 @@ You might be interested in the following files and directories:
   * [config.yml](../master/config.yml) - configuration of the OMF wrapper
 
 
-## Tutorials
+## Further Information
 
-* [Client Side Tutorial](../wiki/Client-Side-Tutorial)
-   A tutorial teaching you how to install and configure the OMF experiment controller and how to write experiments for the testbed runtime in OEDL using the wise_omf gem as helper.
-* [Message Documentation](../wiki/Message-Documentation)
-   This pages contains a documentation of all possible commands that can be send to the testbed runtime via the wise_omf client helper. Furthermore this page contains a description of the message format of all messages beeing send to and from the client.
+Visit the [wiki](https://github.com/wisebed/wiseomf/wiki) for tutorials and additional documentation.
