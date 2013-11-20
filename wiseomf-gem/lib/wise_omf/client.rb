@@ -67,12 +67,11 @@ module WiseOMF
       # This method initializes the callback handler on the group topic.
       # The topic might be nil direct after the intialization.
       #
-      # @param block a block that should be called after initializing the topic callback
+      # @param &block a block that should be called after initializing the topic callback
       def init_callback(&block)
         if @group.topic.nil?
-          info "Delaying callback creation for 1 seconds"
+          debug "Delaying callback creation for 1 seconds"
           OmfCommon.el.after(1) {
-            info "Firing"
             init_callback(&block)
           }
           return
@@ -93,7 +92,6 @@ module WiseOMF
             end
           end
         }
-        info "Callback: #{block}"
         block.call(self) if block
 
       end
@@ -191,10 +189,20 @@ module WiseOMF
 
       end
 
+      # Getter for the reservation group
+      #
+      # @return[WiseOMF::Client::WiseGroup] the group
       def self.reservationGroup
         @@reservationGroup
       end
 
+
+      # Method for creating a group for an arbitrary subset of nodes
+      #
+      # @param nodeUrns [Array, Set] a set of node urns to create a group for.
+      #  **Important:** the set must be a real subset of all nodes in the reservation.
+      # @param name [String] the groups name
+      # @param &block a block to perform after the creation was finished
       def self.createGroupForNodes(nodeUrns, name = nil, &block)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
         if @@nodeGroups[groupId].nil?
@@ -219,13 +227,15 @@ module WiseOMF
             @@reservationGroup.group.topic.create(:wisebed_node, {uid: groupId, urns: nodeUrns, membership: group.group.address})
           }
 
-
+        else
+          block.call(@@nodeGroups[groupId]) if block
         end
       end
 
       # Returns a group to use when interacting with an arbitrary subset of the all nodes set
       #
       # @param nodeUrns [Array, Set, #read] a list of nodes to get the group for.
+      #
       # @return [WiseOMF::Client::WiseGroup] the WiseGroup for the node urns if one was found, nil otherwise
       def self.groupForNodes(nodeUrns)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, nodeUrns)
@@ -246,7 +256,8 @@ module WiseOMF
 
       # Returns a WiseGroup to talk to. This group should be used for interacting with single nodes.
       #
-      # @param[String, #read] the node urn
+      # @param nodeUrn [String] the node urn
+      #
       # @return[WiseOMF::Client::WiseGroup] the group for a single resource
       def self.groupForNode(nodeUrn)
         groupId = WiseOMFUtils::UIDHelper.node_group_uid(@@reservation, [nodeUrn])
@@ -258,6 +269,7 @@ module WiseOMF
       end
 
       # Getter for the reservation id of the current reservation
+      #
       # @return[String] the reservation id for this reservation
       def self.reservationID
         WiseOMFUtils::UIDHelper.reservation_uid(@@reservation)

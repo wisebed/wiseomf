@@ -34,7 +34,7 @@ onEvent :ALL_NODES_UP do
   # The callback receives a set of properties containing an array of responses (on for each node in the group)
   # Every response contains a statusCode which is 1 if the node is connected. Furthermore every response contains the appropriate nodeUrn.
   WiseOMF::Client::ReservationManager.allNodesGroup.connected { |properties|
-    warn "Got connected callback: #{properties.to_yaml}"
+    info "Got connected callback: #{properties.to_yaml}"
 
     # Testing whether all nodes are connected or not:
     if properties.responses.all? { |response| response.statusCode == 1 }
