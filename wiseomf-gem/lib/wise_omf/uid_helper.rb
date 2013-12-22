@@ -2,7 +2,7 @@ require 'base64'
 require 'json'
 require 'protocol_buffers'
 
-require 'wise_omf/protobuf'
+require_relative 'protobuf'
 
 
 module WiseOMFUtils

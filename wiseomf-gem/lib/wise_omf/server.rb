@@ -1,4 +1,4 @@
-require 'wise_omf/protobuf'
-require 'wise_omf/uid_helper'
+require_relative 'protobuf'
+require_relative 'uid_helper'
 class Server
 end

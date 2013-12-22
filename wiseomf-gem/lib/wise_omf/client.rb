@@ -1,5 +1,5 @@
 require 'lrucache'
-require 'wise_omf/uid_helper'
+require_relative 'uid_helper'
 require 'yaml'
 require 'omf_common'
 module WiseOMF
