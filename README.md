@@ -1,7 +1,7 @@
 # WiseOMF - An OMF Wrapper for Testbed Runtime
 
 This repository contains the server side implementation of the OMF ([Orbit Measurement Framework](http://mytestbed.net/projects/omf/wiki/OMF_Main_Page)) wrapper for testbed runtime
-as well as the client side helpers for writing experiments with OEDL (OMF Experiment Description Language).
+as well as the client side helpers for writing experiments with the OEDL (OMF Experiment Description Language).
 
 
 ## Overview
