@@ -52,7 +52,7 @@ onEvent :ALL_NODES_UP do
       WiseOMF::Client::ReservationManager.allNodesGroup.set_image(Base64.encode64(flash_image)) { |properties|
         if properties.type.to_sym.eql? :progress
           # the message is a progress message of a single node in the group
-          info "Progress of #{properties.nodeUrns.first}: #{properties.progress}%"
+          info "Progress of #{properties.nodeUrn}: #{properties.progress}%"
         elsif properties.type.to_sym.eql? :response
           # the message is a response telling us, that the flashing task was completed (or failed)
           # this message contains on response for every node in the group

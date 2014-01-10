@@ -146,7 +146,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
       error 'SingleNodeProgress has more than one node'
       return
     end
-    self.inform_status({type: :progress, requestId: id, nodeUrns: nodes.to_a, progress: event.progressInPercent})
+    self.inform_status({type: :progress, requestId: id, nodeUrn: nodes.to_a.first, progress: event.progressInPercent})
   end
 
 
