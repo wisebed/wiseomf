@@ -158,7 +158,7 @@ module OmfRc::ResourceProxy::NodeGroupProxy
     info "on_upstream_message: event = #{event.to_hash}"
     intersection = self.nodeUrns & nodes
     info "Node Intersection is #{intersection.to_yaml}"
-    hash = {type: :message, nodeUrns: intersection.to_a, timestamp: event.timestamp, payload: Base64.encode64(event.messageBytes)}
+    hash = {type: :message, nodeUrn: intersection.to_a.first, timestamp: event.timestamp, payload: Base64.encode64(event.messageBytes)}
     hash[:requestId] = id if id
     info "status hash: #{hash}"
 
