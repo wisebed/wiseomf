@@ -2,6 +2,7 @@
     # Reservation Events
     RESERVATION_STARTED = :reservation_started_event
     RESERVATION_ENDED = :reservation_ended_event
+    RESERVATION_CANCELLED = :reservation_cancelled_event
 
     # IWSN Events
     IWSN_UPSTREAM_MESSAGE = :iwsn_upstream_message

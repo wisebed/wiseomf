@@ -135,9 +135,11 @@ class TRConnector
             EventBus.publish(Events::RESERVATION_STARTED, event: re)
           when ReservationEvent::Type::ENDED
             EventBus.publish(Events::RESERVATION_ENDED, event: re)
+          when ReservationEvent::Type::CANCELLED
+            EventBus.publish(Events::RESERVATION_CANCELLED, event: re)
         end
 
-      # no other cases atm
+      # no other cases to handle atm
     end
 
   end
