@@ -25,6 +25,11 @@ module De
 
                 STARTED = 1
                 ENDED = 2
+                MADE = 3
+                CANCELLED = 4
+                FINALIZED = 5
+                OPENED = 6
+                CLOSED = 7
               end
 
               set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationEvent"
@@ -43,6 +48,8 @@ module De
               repeated :string, :nodeUrns, 3
               required :string, :interval_start, 4
               required :string, :interval_end, 5
+              optional :string, :cancelled, 6
+              optional :string, :finalized, 7
             end
 
             class InternalMessage < ::ProtocolBuffers::Message

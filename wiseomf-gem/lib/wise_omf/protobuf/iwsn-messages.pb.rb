@@ -32,7 +32,19 @@ module De
             class UpstreamMessageEvent < ::ProtocolBuffers::Message; end
             class DevicesAttachedEvent < ::ProtocolBuffers::Message; end
             class DevicesDetachedEvent < ::ProtocolBuffers::Message; end
+            class GatewayConnectedEvent < ::ProtocolBuffers::Message; end
+            class GatewayDisconnectedEvent < ::ProtocolBuffers::Message; end
             class NotificationEvent < ::ProtocolBuffers::Message; end
+            class ReservationStartedEvent < ::ProtocolBuffers::Message; end
+            class ReservationEndedEvent < ::ProtocolBuffers::Message; end
+            class ReservationMadeEvent < ::ProtocolBuffers::Message; end
+            class ReservationCancelledEvent < ::ProtocolBuffers::Message; end
+            class ReservationFinalizedEvent < ::ProtocolBuffers::Message; end
+            class ReservationOpenedEvent < ::ProtocolBuffers::Message; end
+            class ReservationClosedEvent < ::ProtocolBuffers::Message; end
+            class DeviceConfigCreatedEvent < ::ProtocolBuffers::Message; end
+            class DeviceConfigUpdatedEvent < ::ProtocolBuffers::Message; end
+            class DeviceConfigDeletedEvent < ::ProtocolBuffers::Message; end
             class Event < ::ProtocolBuffers::Message; end
             class EventAck < ::ProtocolBuffers::Message; end
             class Message < ::ProtocolBuffers::Message; end
@@ -248,12 +260,91 @@ module De
               required :uint64, :timestamp, 2
             end
 
+            class GatewayConnectedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.GatewayConnectedEvent"
+
+              required :uint64, :timestamp, 1
+              required :string, :hostname, 2
+            end
+
+            class GatewayDisconnectedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.GatewayDisconnectedEvent"
+
+              required :uint64, :timestamp, 1
+              required :string, :hostname, 2
+              repeated :string, :nodeUrns, 3
+            end
+
             class NotificationEvent < ::ProtocolBuffers::Message
               set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.NotificationEvent"
 
               optional :string, :nodeUrn, 1
               required :uint64, :timestamp, 2
               required :string, :message, 3
+            end
+
+            class ReservationStartedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationStartedEvent"
+
+              required :string, :serializedKey, 1
+              required :uint64, :timestamp, 2
+            end
+
+            class ReservationEndedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationEndedEvent"
+
+              required :string, :serializedKey, 1
+              required :uint64, :timestamp, 2
+            end
+
+            class ReservationMadeEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationMadeEvent"
+
+              required :string, :serializedKey, 1
+            end
+
+            class ReservationCancelledEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationCancelledEvent"
+
+              required :string, :serializedKey, 1
+              required :uint64, :timestamp, 2
+            end
+
+            class ReservationFinalizedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationFinalizedEvent"
+
+              required :string, :serializedKey, 1
+              required :uint64, :timestamp, 2
+            end
+
+            class ReservationOpenedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationOpenedEvent"
+
+              required :string, :serializedKey, 1
+            end
+
+            class ReservationClosedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.ReservationClosedEvent"
+
+              required :string, :serializedKey, 1
+            end
+
+            class DeviceConfigCreatedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.DeviceConfigCreatedEvent"
+
+              required :string, :nodeUrn, 1
+            end
+
+            class DeviceConfigUpdatedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.DeviceConfigUpdatedEvent"
+
+              required :string, :nodeUrn, 1
+            end
+
+            class DeviceConfigDeletedEvent < ::ProtocolBuffers::Message
+              set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.DeviceConfigDeletedEvent"
+
+              required :string, :nodeUrn, 1
             end
 
             class Event < ::ProtocolBuffers::Message
@@ -266,9 +357,21 @@ module De
                 set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.Event.Type"
 
                 UPSTREAM_MESSAGE = 1
-                DEVICES_ATTACHED = 2
-                DEVICES_DETACHED = 3
-                NOTIFICATION = 4
+                DEVICES_ATTACHED = 10
+                DEVICES_DETACHED = 11
+                GATEWAY_CONNECTED = 20
+                GATEWAY_DISCONNECTED = 21
+                NOTIFICATION = 30
+                RESERVATION_STARTED = 40
+                RESERVATION_ENDED = 41
+                RESERVATION_MADE = 42
+                RESERVATION_CANCELLED = 43
+                RESERVATION_OPENED = 44
+                RESERVATION_CLOSED = 45
+                RESERVATION_FINALIZED = 46
+                DEVICE_CONFIG_CREATED = 50
+                DEVICE_CONFIG_UPDATED = 51
+                DEVICE_CONFIG_DELETED = 52
               end
 
               set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.Event"
@@ -276,9 +379,21 @@ module De
               required :int64, :eventId, 1
               required ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::Event::Type, :type, 2
               optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::UpstreamMessageEvent, :upstreamMessageEvent, 101
-              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DevicesAttachedEvent, :devicesAttachedEvent, 102
-              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DevicesDetachedEvent, :devicesDetachedEvent, 103
-              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::NotificationEvent, :notificationEvent, 104
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DevicesAttachedEvent, :devicesAttachedEvent, 110
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DevicesDetachedEvent, :devicesDetachedEvent, 111
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::GatewayConnectedEvent, :gatewayConnectedEvent, 120
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::GatewayDisconnectedEvent, :gatewayDisconnectedEvent, 121
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::NotificationEvent, :notificationEvent, 130
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationStartedEvent, :reservationStartedEvent, 140
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationEndedEvent, :reservationEndedEvent, 141
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationMadeEvent, :reservationMadeEvent, 142
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationCancelledEvent, :reservationCancelledEvent, 143
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationOpenedEvent, :reservationOpenedEvent, 144
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationClosedEvent, :reservationClosedEvent, 145
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::ReservationFinalizedEvent, :reservationFinalizedEvent, 146
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DeviceConfigCreatedEvent, :deviceConfigCreatedEvent, 150
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DeviceConfigUpdatedEvent, :deviceConfigUpdatedEvent, 151
+              optional ::De::Uniluebeck::Itm::Tr::Iwsn::Messages::DeviceConfigDeletedEvent, :deviceConfigDeletedEvent, 152
             end
 
             class EventAck < ::ProtocolBuffers::Message
@@ -302,6 +417,8 @@ module De
                 GET_CHANNELPIPELINES_RESPONSE = 4
                 EVENT = 5
                 EVENT_ACK = 6
+                KEEP_ALIVE = 7
+                KEEP_ALIVE_ACK = 8
               end
 
               set_fully_qualified_name "de.uniluebeck.itm.tr.iwsn.messages.Message"

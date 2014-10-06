@@ -3,8 +3,8 @@
 
 require 'protocol_buffers'
 
-begin; require_relative 'internal-messages.pb.rb'; rescue LoadError; end
-begin; require_relative 'iwsn-messages.pb.rb'; rescue LoadError; end
+begin; require 'internal-messages.pb'; rescue LoadError; end
+begin; require 'iwsn-messages.pb'; rescue LoadError; end
 
 module De
   module Uniluebeck
